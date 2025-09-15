@@ -1465,6 +1465,10 @@ def admin_traffic():
 # 确保应用可以被 Gunicorn 找到
 application = app
 
+# 添加main函数作为WSGI入口点
+def main():
+    return application
+
 if __name__ == '__main__':
     # 开发环境下使用 Flask 内置服务器
     app.run(host='0.0.0.0', port=5001, debug=False)
