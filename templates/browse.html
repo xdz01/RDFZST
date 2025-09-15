@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{% block title %}RDFZ食堂大众点评 - 浏览菜品{% endblock %}
+
+{% block styles %}
+<style>
+    .browse-header {
+        background-color: #3498db;
+        color: white;
+        padding: 2rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    
+    .browse-title {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    
+    .browse-subtitle {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 1.1rem;
+    }
+    
+    .filter-section {
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .filter-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: center;
+    }
+    
+    .filter-group {
+        flex: 1;
+        min-width: 200px;
+    }
+    
+    .filter-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #2c3e50;
+    }
+    
+    .filter-input {
+        width: 100%;
+        padding: 0.8rem;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 1rem;
+    }
+    
+    .filter-btn {
+        padding: 0.8rem 1.5rem;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 1rem;
+        cursor: pointer;
+        margin-top: 1.5rem;
+    }
+    
+    .reset-btn {
+        padding: 0.8rem 1.5rem;
+        background-color: #7f8c8d;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 1rem;
+        cursor: pointer;
+        margin-top: 1.5rem;
+        margin-left: 1rem;
+    }
+    
+    .results-info {
+        margin-bottom: 1.5rem;
+        color: #7f8c8d;
+        font-size: 1.1rem;
+    }
+    
+    .food-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2rem;
+    }
+    
+    .food-card {
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        transition: transform 0.3s;
+    }
+    
+    .food-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .food-image {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+    }
+    
+    .food-placeholder {
+        width: 100%;
+        height: 200px;
+        background-color: #ecf0f1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: #bdc3c7;
+        font-size: 1.2rem;
+    }
+    
+    .food-info {
+        padding: 1.5rem;
+    }
+    
+    .food-name {
+        font-size: 1.3rem;
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+    
+    .food-floor {
+        color: #7f8c8d;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .food-rating {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .stars {
+        color: #f1c40f;
+        margin-right: 0.5rem;
+    }
+    
+    .rating-value {
+        font-weight: bold;
+        color: #2c3e50;
+    }
+    
+    .rating-count {
+        margin-left: 0.5rem;
+        color: #95a5a6;
+        font-size: 0.9rem;
+    }
+    
+    .food-action {
+        text-align: right;
+    }
+    
+    .view-btn {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background-color: #3498db;
+        color: white;
+        border-radius: 5px;
+        text-decoration: none;
+        font-size: 0.9rem;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        color: #7f8c8d;
+    }
+    
+    .pagination {
+        display: flex;
+        justify-content: center;
+        margin-top: 2rem;
+    }
+    
+    .page-item {
+        margin: 0 0.3rem;
+    }
+    
+    .page-link {
+        display: block;
+        padding: 0.5rem 1rem;
+        background-color: white;
+        color: #3498db;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        text-decoration: none;
+    }
+    
+    .page-link.active {
+        background-color: #3498db;
+        color: white;
+        border-color: #3498db;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 2rem; max-width: 1200px; margin: 0 auto;">
+    <div class="browse-header">
+        <div class="browse-title">浏览所有菜品</div>
+        <div class="browse-subtitle">探索食堂的所有美食</div>
+    </div>
+    
+    <div class="filter-section">
+        <form action="{{ url_for('browse') }}" method="get">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="floor" class="filter-label">楼层</label>
+                    <select id="floor" name="floor" class="filter-input">
+                        <option value="">全部楼层</option>
+                        {% for floor in floors %}
+                            <option value="{{ floor.id }}" {% if request.args.get('floor')|int == floor.id %}selected{% endif %}>{{ floor.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="meal_time" class="filter-label">供应时段</label>
+                    <select id="meal_time" name="meal_time" class="filter-input">
+                        <option value="">全部时段</option>
+                        <option value="breakfast" {% if request.args.get('meal_time') == 'breakfast' %}selected{% endif %}>早餐</option>
+                        <option value="lunch" {% if request.args.get('meal_time') == 'lunch' %}selected{% endif %}>午餐</option>
+                        <option value="dinner" {% if request.args.get('meal_time') == 'dinner' %}selected{% endif %}>晚餐</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="sort" class="filter-label">排序方式</label>
+                    <select id="sort" name="sort" class="filter-input">
+                        <option value="rating" {% if request.args.get('sort') == 'rating' or not request.args.get('sort') %}selected{% endif %}>评分优先</option>
+                        <option value="reviews" {% if request.args.get('sort') == 'reviews' %}selected{% endif %}>评价数量</option>
+                        <option value="newest" {% if request.args.get('sort') == 'newest' %}selected{% endif %}>最新添加</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="filter-row" style="margin-top: 1rem;">
+                <div class="filter-group">
+                    <label for="search" class="filter-label">菜品名称搜索</label>
+                    <input type="text" id="search" name="search" class="filter-input" placeholder="输入菜品名称关键词" value="{{ request.args.get('search', '') }}">
+                </div>
+                
+                <div class="filter-group">
+                    <label for="min_rating" class="filter-label">最低评分</label>
+                    <select id="min_rating" name="min_rating" class="filter-input">
+                        <option value="">不限评分</option>
+                        <option value="4.5" {% if request.args.get('min_rating') == '4.5' %}selected{% endif %}>4.5星以上</option>
+                        <option value="4" {% if request.args.get('min_rating') == '4' %}selected{% endif %}>4星以上</option>
+                        <option value="3.5" {% if request.args.get('min_rating') == '3.5' %}selected{% endif %}>3.5星以上</option>
+                        <option value="3" {% if request.args.get('min_rating') == '3' %}selected{% endif %}>3星以上</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div style="text-align: right;">
+                <button type="submit" class="filter-btn">应用筛选</button>
+                <a href="{{ url_for('browse') }}" class="reset-btn">重置筛选</a>
+            </div>
+        </form>
+    </div>
+    
+    <div class="results-info">
+        找到 {{ foods|length }} 个菜品
+        {% if request.args.get('search') %}
+            包含 "{{ request.args.get('search') }}" 
+        {% endif %}
+        {% if request.args.get('floor') %}
+            在 {{ floors|selectattr('id', 'eq', request.args.get('floor')|int)|map(attribute='name')|first }} 
+        {% endif %}
+        {% if request.args.get('meal_time') %}
+            供应时段: {{ {'breakfast': '早餐', 'lunch': '午餐', 'dinner': '晚餐'}.get(request.args.get('meal_time')) }}
+        {% endif %}
+    </div>
+    
+    {% if foods %}
+        <div class="food-grid">
+            {% for food in foods %}
+                <div class="food-card">
+                    {% if food.cover_image %}
+                        <img src="{{ url_for('static', filename='uploads/' + food.cover_image.filename) }}" alt="{{ food.name }}" class="food-image">
+                    {% else %}
+                        <div class="food-placeholder">
+                            <i class="fas fa-image"></i>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="food-info">
+                        <div class="food-name">{{ food.name }}</div>
+                        <div class="food-floor">
+                            <i class="fas fa-building"></i> {{ food.floor.name }}
+                            {% if food.meal_time %}
+                                - {% if food.meal_time == 'breakfast' %}早餐
+                                {% elif food.meal_time == 'lunch' %}午餐
+                                {% elif food.meal_time == 'dinner' %}晚餐{% endif %}
+                            {% endif %}
+                        </div>
+                        <div class="food-rating">
+                            <div class="stars">
+                                {% for i in range(5) %}
+                                    {% if i < food.avg_rating|int %}
+                                        <i class="fas fa-star"></i>
+                                    {% elif i < food.avg_rating|float %}
+                                        <i class="fas fa-star-half-alt"></i>
+                                    {% else %}
+                                        <i class="far fa-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            <span class="rating-value">{{ "%.1f"|format(food.avg_rating|default(0)) }}</span>
+                            <span class="rating-count">({{ food.reviews|length }})</span>
+                        </div>
+                        
+                        <div class="food-action">
+                            <a href="{{ url_for('food_detail', food_id=food.id) }}" class="view-btn">查看详情</a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        {% if pagination.pages > 1 %}
+            <div class="pagination">
+                {% if pagination.has_prev %}
+                    <div class="page-item">
+                        <a href="{{ url_for('browse', page=pagination.prev_num, **request.args) }}" class="page-link">&laquo; 上一页</a>
+                    </div>
+                {% endif %}
+                
+                {% for page in pagination.iter_pages() %}
+                    {% if page %}
+                        <div class="page-item">
+                            <a href="{{ url_for('browse', page=page, **request.args) }}" class="page-link {% if page == pagination.page %}active{% endif %}">{{ page }}</a>
+                        </div>
+                    {% else %}
+                        <div class="page-item">
+                            <span class="page-link">...</span>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if pagination.has_next %}
+                    <div class="page-item">
+                        <a href="{{ url_for('browse', page=pagination.next_num, **request.args) }}" class="page-link">下一页 &raquo;</a>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="empty-state">
+            <h3>没有找到菜品</h3>
+            <p>尝试调整筛选条件查看更多菜品</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

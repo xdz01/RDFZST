@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}RDFZ食堂大众点评 - 反馈管理{% endblock %}
+
+{% block styles %}
+<style>
+    .admin-container {
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    
+    .admin-header {
+        background-color: #2c3e50;
+        color: white;
+        padding: 2rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    
+    .admin-title {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    
+    .admin-subtitle {
+        color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .feedback-filter {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 1rem;
+    }
+    
+    .filter-link {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        text-decoration: none;
+        margin-left: 0.5rem;
+    }
+    
+    .filter-active {
+        background-color: #e74c3c;
+        color: white;
+    }
+    
+    .filter-inactive {
+        background-color: #f8f9fa;
+        color: #7f8c8d;
+    }
+    
+    .feedback-card {
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+        overflow: hidden;
+    }
+    
+    .feedback-header {
+        background-color: #f8f9fa;
+        padding: 1.5rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #ecf0f1;
+    }
+    
+    .feedback-user {
+        font-weight: bold;
+        color: #2c3e50;
+    }
+    
+    .feedback-date {
+        color: #95a5a6;
+        font-size: 0.9rem;
+    }
+    
+    .feedback-content {
+        padding: 2rem;
+        color: #2c3e50;
+        line-height: 1.6;
+        border-bottom: 1px solid #ecf0f1;
+    }
+    
+    .feedback-meta {
+        padding: 1rem 2rem;
+        color: #7f8c8d;
+        font-size: 0.9rem;
+    }
+    
+    .feedback-response {
+        background-color: #f8f9fa;
+        padding: 1.5rem 2rem;
+        border-top: 1px solid #ecf0f1;
+    }
+    
+    .response-header {
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 1rem;
+    }
+    
+    .response-content {
+        color: #2c3e50;
+        line-height: 1.6;
+        margin-bottom: 1rem;
+    }
+    
+    .new-response {
+        margin-top: 1.5rem;
+    }
+    
+    .response-textarea {
+        width: 100%;
+        padding: 1rem;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        resize: vertical;
+        min-height: 100px;
+        margin-bottom: 1rem;
+    }
+    
+    .submit-btn {
+        padding: 0.7rem 1.5rem;
+        background-color: #e74c3c;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    
+    .unread-badge {
+        display: inline-block;
+        padding: 0.3rem 0.6rem;
+        background-color: #e74c3c;
+        color: white;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        margin-left: 0.5rem;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #7f8c8d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 2rem; max-width: 1200px; margin: 0 auto;">
+    <div class="admin-container">
+        <div class="admin-header">
+            <div class="admin-title">反馈管理</div>
+            <div class="admin-subtitle">查看和回复用户反馈</div>
+        </div>
+        
+        <div class="feedback-filter">
+            <a href="{{ url_for('admin_feedback') }}" class="filter-link {% if not include_read %}filter-active{% else %}filter-inactive{% endif %}">未读反馈</a>
+            <a href="{{ url_for('admin_feedback', include_read='true') }}" class="filter-link {% if include_read %}filter-active{% else %}filter-inactive{% endif %}">所有反馈</a>
+        </div>
+        
+        {% if feedback %}
+            {% for item in feedback %}
+                <div class="feedback-card">
+                    <div class="feedback-header">
+                        <div class="feedback-user">
+                            {% if item.username %}
+                                {{ item.username }}
+                            {% elif item.name %}
+                                {{ item.name }}
+                            {% else %}
+                                匿名用户
+                            {% endif %}
+                            
+                            {% if not item.is_read %}
+                                <span class="unread-badge">未读</span>
+                            {% endif %}
+                        </div>
+                        <div class="feedback-date">{{ item.created_at }}</div>
+                    </div>
+                    
+                    <div class="feedback-content">
+                        {{ item.message }}
+                    </div>
+                    
+                    <div class="feedback-meta">
+                        {% if item.email %}
+                            <div>联系邮箱: {{ item.email }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="feedback-response">
+                        {% if item.response %}
+                            <div class="response-header">回复内容:</div>
+                            <div class="response-content">{{ item.response }}</div>
+                        {% else %}
+                            <form action="{{ url_for('admin_respond_feedback', feedback_id=item.id) }}" method="post" class="new-response">
+                                <div class="response-header">发送回复:</div>
+                                <textarea name="response" class="response-textarea" required></textarea>
+                                <button type="submit" class="submit-btn">提交回复</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <h2>暂无反馈</h2>
+                <p>目前还没有收到任何用户反馈。</p>
+            </div>
+        {% endif %}
+        
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="{{ url_for('admin_dashboard') }}" class="start-btn" style="background-color: #7f8c8d;">返回管理面板</a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

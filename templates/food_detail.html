@@ -1,0 +1,697 @@
+{% extends "base.html" %}
+
+{% block title %}RDFZ食堂大众点评 - {{ food.name }}{% endblock %}
+
+{% block styles %}
+<style>
+    .food-banner {
+        height: 300px;
+        background-color: #3498db;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .banner-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0.8;
+    }
+    
+    .banner-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.7));
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 2rem;
+        color: white;
+    }
+    
+    .food-name {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    
+    .food-meta {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1rem;
+    }
+    
+    .meta-item i {
+        font-size: 1.2rem;
+    }
+    
+    .rating-large {
+        font-size: 3rem;
+        font-weight: bold;
+        margin-right: 1rem;
+    }
+    
+    .rating-breakdown {
+        display: flex;
+        align-items: center;
+    }
+    
+    .rating-count {
+        margin-left: 0.5rem;
+        color: #95a5a6;
+    }
+    
+    .card {
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+    
+    .card-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .card-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #2c3e50;
+        margin: 0;
+    }
+    
+    .card-body {
+        padding: 1.5rem;
+    }
+    
+    .grid-container {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+    }
+    
+    .food-description {
+        white-space: pre-line;
+        line-height: 1.6;
+        color: #2c3e50;
+    }
+    
+    .btn-primary {
+        background-color: #3498db;
+        color: white;
+        padding: 0.8rem 1.5rem;
+        border: none;
+        border-radius: 5px;
+        font-size: 1rem;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .image-gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 1rem;
+    }
+    
+    .gallery-item {
+        border-radius: 5px;
+        overflow: hidden;
+        height: 180px;
+        cursor: pointer;
+    }
+    
+    .gallery-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s;
+    }
+    
+    .gallery-item:hover .gallery-img {
+        transform: scale(1.05);
+    }
+    
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.9);
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .modal-content {
+        max-width: 90%;
+        max-height: 90%;
+        position: relative;
+    }
+    
+    .modal-image {
+        max-width: 100%;
+        max-height: 90vh;
+        object-fit: contain;
+    }
+    
+    .modal-close {
+        position: absolute;
+        top: -30px;
+        right: 0;
+        color: white;
+        font-size: 30px;
+        cursor: pointer;
+    }
+    
+    .modal-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        color: white;
+        font-size: 2rem;
+        cursor: pointer;
+        background-color: rgba(0, 0, 0, 0.5);
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .modal-prev {
+        left: -70px;
+    }
+    
+    .modal-next {
+        right: -70px;
+    }
+    
+    .review-form-card {
+        margin-bottom: 3rem;
+    }
+    
+    .review-form-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        color: #2c3e50;
+    }
+    
+    .rating-selector {
+        display: flex;
+        gap: 0.5rem;
+        font-size: 2rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .rating-selector i {
+        color: #bdc3c7;
+        cursor: pointer;
+    }
+    
+    .rating-selector i.selected {
+        color: #f1c40f;
+    }
+    
+    .rating-label {
+        font-size: 1rem;
+        font-weight: 500;
+        margin-top: 0.5rem;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 1rem;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .reviews-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        color: #2c3e50;
+    }
+    
+    .review-card {
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .review-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .reviewer {
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: #2c3e50;
+    }
+    
+    .review-date {
+        color: #95a5a6;
+        font-size: 0.9rem;
+    }
+    
+    .review-rating {
+        color: #f1c40f;
+        font-size: 1.2rem;
+        margin-bottom: 1rem;
+    }
+    
+    .review-content {
+        line-height: 1.6;
+        white-space: pre-line;
+    }
+    
+    .review-actions {
+        margin-top: 1rem;
+        display: flex;
+        justify-content: flex-end;
+    }
+    
+    .btn-danger {
+        background-color: #e74c3c;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 0.9rem;
+    }
+    
+    .btn-danger:hover {
+        background-color: #c0392b;
+    }
+    
+    .empty-reviews {
+        text-align: center;
+        padding: 3rem;
+        color: #7f8c8d;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    
+    .role-badge {
+        color: white;
+        padding: 0.2rem 0.5rem;
+        border-radius: 5px;
+        font-size: 0.8rem;
+        margin-left: 0.5rem;
+    }
+    
+    .role-badge.superadmin {
+        background-color: #e74c3c;
+    }
+    
+    .role-badge.admin {
+        background-color: #3498db;
+    }
+    
+    .role-badge.connoisseur {
+        background-color: #27ae60;
+    }
+    
+    .role-badge.user {
+        background-color: #95a5a6;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="food-banner">
+    <div class="food-detail-banner" style="background-image: url('{{ url_for('static', filename='uploads/' + food.cover_image) if food.cover_image else url_for('static', filename='img/default-food.jpg') }}');">
+        <div class="banner-overlay">
+            <div class="food-name">{{ food.name }}</div>
+            <div class="food-meta">
+                <div class="meta-item">
+                    <i class="fas fa-building"></i>
+                    <span>{{ food.floor_name }}</span>
+                </div>
+                
+                {% if food.meal_time %}
+                <div class="meta-item">
+                    <i class="far fa-clock"></i>
+                    <span>
+                        {% if food.meal_time == 'breakfast' %}
+                            早餐
+                        {% elif food.meal_time == 'lunch' %}
+                            午餐
+                        {% elif food.meal_time == 'dinner' %}
+                            晚餐
+                        {% endif %}
+                    </span>
+                </div>
+                {% endif %}
+                
+                <div class="meta-item">
+                    <i class="fas fa-star"></i>
+                    <span>{{ "%.1f"|format(food.avg_rating|default(0)) }}</span>
+                    <span class="rating-count">({{ food.reviews|length }}条评价)</span>
+                </div>
+                
+                <div class="meta-item">
+                    <i class="fas fa-yen-sign"></i>
+                    <span>{{ "%.1f"|format(food.price|default(0)) }}元</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container" style="padding: 2rem; max-width: 1200px; margin: 0 auto;">
+    <div class="grid-container">
+        <div class="main-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">菜品介绍</h2>
+                </div>
+                <div class="card-body">
+                    {% if food.description %}
+                        <div class="food-description">{{ food.description }}</div>
+                    {% else %}
+                        <div class="food-description">暂无描述</div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if food.images %}
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">菜品图片</h2>
+                </div>
+                <div class="card-body">
+                    <div class="image-gallery">
+                        {% for image in food.images %}
+                            <div class="gallery-item" data-src="{{ url_for('static', filename='uploads/' + image.filename) }}" data-index="{{ loop.index0 }}">
+                                <img src="{{ url_for('static', filename='uploads/' + image.filename) }}" alt="{{ food.name }}" class="gallery-img">
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if session.get('logged_in') %}
+                <div class="card review-form-card">
+                    <div class="card-header">
+                        <h2 class="card-title">写评价</h2>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('add_review', food_id=food.id) }}" method="post">
+                            <div class="review-form-title">你对这个菜品的评分</div>
+                            <div class="rating-selector" id="ratingStars">
+                                <i class="fas fa-star" data-rating="1"></i>
+                                <i class="fas fa-star" data-rating="2"></i>
+                                <i class="fas fa-star" data-rating="3"></i>
+                                <i class="fas fa-star" data-rating="4"></i>
+                                <i class="fas fa-star" data-rating="5"></i>
+                                <input type="hidden" name="rating" id="ratingInput" value="5">
+                            </div>
+                            <div class="rating-label" id="ratingLabel">很好</div>
+                            
+                            <div class="form-group">
+                                <label for="comment" style="display: block; margin-bottom: 0.5rem;">评价内容:</label>
+                                <textarea class="form-control" id="comment" name="comment" rows="4" placeholder="分享一下你对这个菜品的看法..."></textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn-primary">提交评价</button>
+                        </form>
+                    </div>
+                </div>
+            {% else %}
+                <div class="card" style="text-align: center; padding: 2rem;">
+                    <p>登录后可以发表评价</p>
+                    <a href="{{ url_for('login') }}" class="btn-primary">立即登录</a>
+                </div>
+            {% endif %}
+            
+            <div class="reviews-section">
+                <h2 class="reviews-title">用户评价 ({{ food.reviews|length }})</h2>
+                
+                {% if food.reviews %}
+                    {% for review in food.reviews %}
+                        <div class="review-card">
+                            <div class="review-header">
+                                <div class="reviewer">
+                                    {{ review.username }}
+                                    {% if review.role == 'connoisseur' %}
+                                        <span class="role-badge connoisseur">美食鉴赏家</span>
+                                    {% elif review.role == 'admin' %}
+                                        <span class="role-badge admin">管理员</span>
+                                    {% elif review.role == 'superadmin' %}
+                                        <span class="role-badge superadmin">超级管理员</span>
+                                    {% else %}
+                                        <span class="role-badge user">普通用户</span>
+                                    {% endif %}
+                                </div>
+                                <div class="review-date">
+                                    {% if review.created_at is string %}
+                                        {{ review.created_at }}
+                                    {% else %}
+                                        {{ review.created_at.strftime('%Y-%m-%d') }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="review-rating">
+                                {% for i in range(5) %}
+                                    {% if i < review.rating %}
+                                        <i class="fas fa-star"></i>
+                                    {% else %}
+                                        <i class="far fa-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            <div class="review-content">{{ review.comment }}</div>
+                            {% if session.get('logged_in') and (session.get('role') in ['admin', 'superadmin'] or session.get('user_id') == review.user_id) %}
+                                <div class="review-actions">
+                                    <button class="btn btn-danger delete-review" data-id="{{ review.id }}">删除评论</button>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-reviews">
+                        <p>暂无评价</p>
+                        {% if session.get('logged_in') %}
+                            <p>成为第一个评价这个菜品的人吧！</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="sidebar">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">评分</h2>
+                </div>
+                <div class="card-body" style="text-align: center;">
+                    <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem;">
+                        <div class="rating-large">{{ "%.1f"|format(food.avg_rating|default(0)) }}</div>
+                        <div class="rating-breakdown">
+                            {% for i in range(5) %}
+                                {% if i < food.avg_rating|int %}
+                                    <i class="fas fa-star" style="color: #f1c40f;"></i>
+                                {% elif i < food.avg_rating|float %}
+                                    <i class="fas fa-star-half-alt" style="color: #f1c40f;"></i>
+                                {% else %}
+                                    <i class="far fa-star" style="color: #f1c40f;"></i>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div style="color: #7f8c8d;">{{ food.reviews|length }}条评价</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">价格</h2>
+                </div>
+                <div class="card-body" style="text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: bold; color: #e74c3c; margin-bottom: 0.5rem;">
+                        {{ "%.1f"|format(food.price|default(0)) }}
+                    </div>
+                    <div style="color: #7f8c8d;">人民币/份</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">位置</h2>
+                </div>
+                <div class="card-body">
+                    <p style="margin-bottom: 0.5rem;"><strong>楼层:</strong> {{ food.floor_name }}</p>
+                    <p><strong>楼层描述:</strong> {{ food.floor_description }}</p>
+                </div>
+            </div>
+            
+            {% if session.get('logged_in') and session.get('role') in ['admin', 'superadmin', 'connoisseur'] %}
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">管理员操作</h2>
+                    </div>
+                    <div class="card-body" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <a href="{{ url_for('admin_edit_food', food_id=food.id) }}" class="btn-primary" style="text-align: center;">编辑菜品</a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Image Modal -->
+<div id="imageModal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeImageModal()">&times;</span>
+        <img id="modalImage" src="" alt="Food Image" class="modal-image">
+        <div class="modal-nav modal-prev" onclick="changeImage(-1)">&#10094;</div>
+        <div class="modal-nav modal-next" onclick="changeImage(1)">&#10095;</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Image gallery modal
+let currentImageIndex = 0;
+let imageUrls = [];
+
+// 获取所有图片元素
+const galleryItems = document.querySelectorAll('.gallery-item');
+galleryItems.forEach(item => {
+    // 将URL添加到数组
+    imageUrls.push(item.dataset.src);
+    
+    // 为每个元素添加点击事件
+    item.addEventListener('click', function() {
+        const imgSrc = this.dataset.src;
+        const index = parseInt(this.dataset.index);
+        openImageModal(imgSrc, index);
+    });
+});
+
+function openImageModal(imgSrc, index) {
+    document.getElementById('modalImage').src = imgSrc;
+    currentImageIndex = index;
+    document.getElementById('imageModal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeImageModal() {
+    document.getElementById('imageModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+function changeImage(step) {
+    currentImageIndex = (currentImageIndex + step + imageUrls.length) % imageUrls.length;
+    document.getElementById('modalImage').src = imageUrls[currentImageIndex];
+}
+
+// Close modal when clicking outside the image
+window.onclick = function(event) {
+    const modal = document.getElementById('imageModal');
+    if (event.target == modal) {
+        closeImageModal();
+    }
+}
+
+// Review rating selector
+const stars = document.querySelectorAll('#ratingStars i');
+const ratingInput = document.getElementById('ratingInput');
+const ratingLabel = document.getElementById('ratingLabel');
+const ratingTexts = ['很差', '较差', '一般', '不错', '很好'];
+
+// Set initial rating
+updateStars(5);
+
+stars.forEach(star => {
+    star.addEventListener('click', () => {
+        const rating = parseInt(star.getAttribute('data-rating'));
+        ratingInput.value = rating;
+        updateStars(rating);
+    });
+    
+    star.addEventListener('mouseover', () => {
+        const rating = parseInt(star.getAttribute('data-rating'));
+        highlightStars(rating);
+    });
+});
+
+document.getElementById('ratingStars').addEventListener('mouseout', () => {
+    const currentRating = parseInt(ratingInput.value);
+    highlightStars(currentRating);
+});
+
+function updateStars(rating) {
+    ratingInput.value = rating;
+    highlightStars(rating);
+    ratingLabel.textContent = ratingTexts[rating - 1];
+}
+
+function highlightStars(rating) {
+    stars.forEach(s => {
+        const starRating = parseInt(s.getAttribute('data-rating'));
+        if (starRating <= rating) {
+            s.classList.add('selected');
+        } else {
+            s.classList.remove('selected');
+        }
+    });
+}
+
+// 删除评论功能
+document.querySelectorAll('.delete-review').forEach(button => {
+    button.addEventListener('click', function() {
+        if (confirm('确定要删除这条评论吗？')) {
+            const reviewId = this.dataset.id;
+            fetch(`/api/delete_review/${reviewId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 删除成功后刷新页面
+                    window.location.reload();
+                } else {
+                    alert(data.message || '删除评论失败');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('删除评论时发生错误');
+            });
+        }
+    });
+});
+</script>
+{% endblock %} 

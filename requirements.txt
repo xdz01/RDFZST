@@ -1,0 +1,8 @@
+flask==2.3.3
+Werkzeug==2.3.7
+Jinja2==3.1.2
+flask-wtf==1.1.1
+email-validator==2.0.0
+Pillow==9.5.0
+flask-simple-captcha==5.2.0
+pytz==2023.3 

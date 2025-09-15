@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block title %}RDFZ食堂大众点评 - 用户管理{% endblock %}
+
+{% block styles %}
+<style>
+    .admin-container {
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    
+    .admin-header {
+        background-color: #2c3e50;
+        color: white;
+        padding: 2rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    
+    .admin-title {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    
+    .admin-subtitle {
+        color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .admin-section {
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+        overflow: hidden;
+    }
+    
+    .section-title {
+        background-color: #9b59b6;
+        color: white;
+        padding: 1rem 2rem;
+        font-size: 1.3rem;
+        font-weight: bold;
+    }
+    
+    .section-content {
+        padding: 2rem;
+    }
+    
+    .table-container {
+        overflow-x: auto;
+    }
+    
+    .admin-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .admin-table th {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        text-align: left;
+        font-weight: bold;
+        color: #2c3e50;
+        border-bottom: 2px solid #ecf0f1;
+    }
+    
+    .admin-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #ecf0f1;
+        color: #7f8c8d;
+    }
+    
+    .admin-table tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .user-name {
+        font-weight: bold;
+        color: #2c3e50;
+    }
+    
+    .user-role {
+        display: inline-block;
+        padding: 0.3rem 0.6rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        color: white;
+    }
+    
+    .role-user {
+        background-color: #95a5a6;
+    }
+    
+    .role-admin {
+        background-color: #3498db;
+    }
+    
+    .role-superadmin {
+        background-color: #e74c3c;
+    }
+    
+    .role-connoisseur {
+        background-color: #27ae60;
+    }
+    
+    .form-inline {
+        display: flex;
+        align-items: center;
+    }
+    
+    .form-inline select {
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        margin-right: 0.5rem;
+    }
+    
+    .form-inline button {
+        padding: 0.5rem 0.8rem;
+        border: none;
+        border-radius: 5px;
+        background-color: #9b59b6;
+        color: white;
+        cursor: pointer;
+    }
+    
+    .action-btn {
+        display: inline-block;
+        padding: 0.5rem 0.8rem;
+        border-radius: 5px;
+        text-decoration: none;
+        margin-right: 0.5rem;
+        font-size: 0.9rem;
+        color: white;
+        background-color: #e74c3c;
+        border: none;
+        cursor: pointer;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #7f8c8d;
+    }
+    
+    .sort-link {
+        color: #2c3e50;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        transition: color 0.3s;
+    }
+    
+    .sort-link:hover {
+        color: #9b59b6;
+        text-decoration: none;
+    }
+    
+    .sort-link.active {
+        color: #9b59b6;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 2rem; max-width: 1200px; margin: 0 auto;">
+    <div class="admin-container">
+        <div class="admin-header">
+            <div class="admin-title">用户管理</div>
+            <div class="admin-subtitle">管理网站用户信息</div>
+        </div>
+        
+        <div class="admin-section">
+            <div class="section-title">所有用户</div>
+            <div class="section-content">
+                {% if users %}
+                    <div class="table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <a href="?sort=username&order={% if sort_by == 'username' and order == 'asc' %}desc{% else %}asc{% endif %}" 
+                                           class="sort-link {% if sort_by == 'username' %}active{% endif %}">
+                                            用户名
+                                            {% if sort_by == 'username' %}
+                                                {% if order == 'asc' %}↑{% else %}↓{% endif %}
+                                            {% endif %}
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="?sort=phone&order={% if sort_by == 'phone' and order == 'asc' %}desc{% else %}asc{% endif %}" 
+                                           class="sort-link {% if sort_by == 'phone' %}active{% endif %}">
+                                            手机号
+                                            {% if sort_by == 'phone' %}
+                                                {% if order == 'asc' %}↑{% else %}↓{% endif %}
+                                            {% endif %}
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="?sort=created_at&order={% if sort_by == 'created_at' and order == 'asc' %}desc{% else %}asc{% endif %}" 
+                                           class="sort-link {% if sort_by == 'created_at' %}active{% endif %}">
+                                            注册时间
+                                            {% if sort_by == 'created_at' %}
+                                                {% if order == 'asc' %}↑{% else %}↓{% endif %}
+                                            {% endif %}
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a href="?sort=role&order={% if sort_by == 'role' and order == 'asc' %}desc{% else %}asc{% endif %}" 
+                                           class="sort-link {% if sort_by == 'role' %}active{% endif %}">
+                                            角色
+                                            {% if sort_by == 'role' %}
+                                                {% if order == 'asc' %}↑{% else %}↓{% endif %}
+                                            {% endif %}
+                                        </a>
+                                    </th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                    <tr>
+                                        <td class="user-name">{{ user.username }}</td>
+                                        <td>{{ user.phone }}</td>
+                                        <td>{{ user.created_at }}</td>
+                                        <td>
+                                            <span class="user-role role-{{ user.role }}">
+                                                {% if user.role == 'superadmin' %}
+                                                    超级管理员
+                                                {% elif user.role == 'admin' %}
+                                                    管理员
+                                                {% elif user.role == 'connoisseur' %}
+                                                    美食鉴赏家
+                                                {% else %}
+                                                    普通用户
+                                                {% endif %}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if user.role != 'superadmin' or user.username != 'fyfy001' %}
+                                                <form action="{{ url_for('admin_change_role', user_id=user.id) }}" method="post" class="form-inline">
+                                                    <div class="form-group">
+                                                        <select name="role" class="form-control">
+                                                            <option value="user" {% if user.role == 'user' %}selected{% endif %}>普通用户</option>
+                                                            <option value="connoisseur" {% if user.role == 'connoisseur' %}selected{% endif %}>美食鉴赏家</option>
+                                                            <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>管理员</option>
+                                                            <option value="superadmin" {% if user.role == 'superadmin' %}selected{% endif %}>超级管理员</option>
+                                                        </select>
+                                                    </div>
+                                                    <button type="submit">更改角色</button>
+                                                </form>
+                                                
+                                                {% if user.username != 'fyfy001' %}
+                                                    <form action="{{ url_for('admin_delete_user', user_id=user.id) }}" method="post" style="display: inline; margin-top: 0.5rem;">
+                                                        <button type="submit" class="action-btn" onclick="return confirm('确定要删除该用户吗？')">删除用户</button>
+                                                    </form>
+                                                {% endif %}
+                                            {% else %}
+                                                <span style="color: #95a5a6;">系统保留账号</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <h2>暂无用户</h2>
+                        <p>目前系统中还没有任何用户。</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="{{ url_for('admin_dashboard') }}" class="start-btn" style="background-color: #7f8c8d;">返回管理面板</a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

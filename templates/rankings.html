@@ -1,0 +1,759 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - 人大附中食堂评价系统{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1">{{ title }}</h2>
+                    <p class="text-muted">{{ subtitle }}</p>
+                </div>
+                <div class="ranking-btn-group">
+                    <a href="{{ url_for('rankings', type='hot') }}" 
+                       class="btn ranking-btn {% if sort_type == 'hot' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                        🔥 热度排行
+                    </a>
+                    <a href="{{ url_for('rankings', type='score') }}" 
+                       class="btn ranking-btn {% if sort_type == 'score' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                        ⭐ 得分排行
+                    </a>
+                    <a href="{{ url_for('rankings', type='users') }}" 
+                       class="btn ranking-btn {% if sort_type == 'users' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                        👨‍🍳 鉴赏家排行
+                    </a>
+                </div>
+            </div>
+
+            {% if sort_type == 'users' %}
+            <!-- 用户排行榜 -->
+            {% if users %}
+            <div class="ranking-list">
+                {% for user in users %}
+                <div class="ranking-item user-item" data-rank="{{ user.rank }}">
+                    <!-- 排名徽章 -->
+                    <div class="rank-badge">
+                        {% if user.rank <= 3 %}
+                        <span class="badge badge-rank rank-{{ user.rank }}">
+                            {% if user.rank == 1 %}🥇{% elif user.rank == 2 %}🥈{% else %}🥉{% endif %}
+                        </span>
+                        {% else %}
+                        <span class="badge badge-secondary rank-number">{{ user.rank }}</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- 用户头像 -->
+                    <div class="user-avatar">
+                        <div class="avatar-placeholder">
+                            <i class="fas fa-user"></i>
+                        </div>
+                    </div>
+
+                    <!-- 用户信息 -->
+                    <div class="user-info">
+                        <div class="user-header">
+                            <h5 class="user-name">{{ user.username }}</h5>
+                            <span class="role-badge role-{{ user.role }}">{{ user.role_display }}</span>
+                        </div>
+                        
+                        <div class="user-stats-summary">
+                            <span class="stat-chip">📝 {{ user.review_count }} 条评论</span>
+                            <span class="stat-chip">⭐ {{ user.avg_rating }} 平均给分</span>
+                            <span class="stat-chip">📅 活跃 {{ user.active_days }} 天</span>
+                        </div>
+                    </div>
+
+                    <!-- 统计数据 -->
+                    <div class="user-stats">
+                        <div class="stat-item">
+                            <div class="stat-label">评论数</div>
+                            <div class="stat-value comment-count">{{ user.review_count }}</div>
+                        </div>
+
+                        <div class="stat-item">
+                            <div class="stat-label">平均评分</div>
+                            <div class="stat-value rating-value">{{ user.avg_rating }}</div>
+                        </div>
+
+                        <div class="stat-item">
+                            <div class="stat-label">活跃天数</div>
+                            <div class="stat-value active-days">{{ user.active_days }}</div>
+                        </div>
+                    </div>
+
+                    <!-- 角色标识 -->
+                    <div class="user-role">
+                        <div class="role-icon">
+                            {% if user.role == 'superadmin' %}
+                            <i class="fas fa-crown text-warning"></i>
+                            {% elif user.role == 'admin' %}
+                            <i class="fas fa-shield-alt text-info"></i>
+                            {% elif user.role == 'connoisseur' %}
+                            <i class="fas fa-star text-success"></i>
+                            {% else %}
+                            <i class="fas fa-user text-muted"></i>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5 empty-state">
+                <i class="fas fa-users fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">暂无用户数据</h4>
+                <p class="text-muted">还没有用户发表评论</p>
+            </div>
+            {% endif %}
+            {% else %}
+            <!-- 食品排行榜 -->
+            {% if foods %}
+            <div class="ranking-list">
+                {% for food in foods %}
+                <div class="ranking-item" data-rank="{{ food.rank }}">
+                    <!-- 排名徽章 -->
+                    <div class="rank-badge">
+                        {% if food.rank <= 3 %}
+                        <span class="badge badge-rank rank-{{ food.rank }}">
+                            {% if food.rank == 1 %}🥇{% elif food.rank == 2 %}🥈{% else %}🥉{% endif %}
+                        </span>
+                        {% else %}
+                        <span class="badge badge-secondary rank-number">{{ food.rank }}</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- 食品图片 -->
+                    <div class="food-image">
+                        {% if food.cover_image %}
+                        <img src="{{ url_for('static', filename='uploads/' + food.cover_image) }}" 
+                             alt="{{ food.name }}" class="img-cover">
+                        {% else %}
+                        <div class="img-placeholder">
+                            <i class="fas fa-utensils"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 食品信息 -->
+                    <div class="food-info">
+                        <div class="food-header">
+                            <h5 class="food-name">{{ food.name }}</h5>
+                            <span class="floor-badge">{{ food.floor_name }}</span>
+                        </div>
+                        
+                        {% if food.description %}
+                        <p class="food-description">{{ food.description[:100] }}{% if food.description|length > 100 %}...{% endif %}</p>
+                        {% endif %}
+
+                        <div class="food-tags">
+                            <span class="meal-tag">
+                                {% if food.meal_time == 'breakfast' %}🌅 早餐
+                                {% elif food.meal_time == 'lunch' %}🌞 午餐  
+                                {% elif food.meal_time == 'dinner' %}🌙 晚餐
+                                {% else %}🌟 全天{% endif %}
+                            </span>
+                            {% if food.category %}
+                            <span class="category-tag">{{ food.category }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- 统计数据 -->
+                    <div class="food-stats">
+                        <div class="stat-item rating-stat">
+                            <div class="stat-label">评分</div>
+                            <div class="stat-value">
+                                {% if food.avg_rating > 0 %}
+                                <div class="stars">
+                                    {% for i in range(1, 6) %}
+                                    <i class="fas fa-star {% if i <= food.avg_rating|round %}star-filled{% else %}star-empty{% endif %}"></i>
+                                    {% endfor %}
+                                </div>
+                                <span class="rating-number">{{ food.avg_rating }}</span>
+                                {% else %}
+                                <span class="no-rating">暂无评分</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="stat-item">
+                            <div class="stat-label">评论数</div>
+                            <div class="stat-value comment-count">{{ food.review_count }}</div>
+                        </div>
+
+                        {% if sort_type == 'score' %}
+                        <div class="stat-item">
+                            <div class="stat-label">总得分</div>
+                            <div class="stat-value score-value">{{ food.score }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 查看详情按钮 -->
+                    <div class="food-action">
+                        <a href="{{ url_for('food_detail', food_id=food.id) }}" 
+                           class="btn btn-primary btn-sm view-detail-btn">
+                            <i class="fas fa-eye"></i> 查看详情
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5 empty-state">
+                <i class="fas fa-chart-line fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">暂无排行数据</h4>
+                <p class="text-muted">还没有足够的评论数据来生成排行榜</p>
+                <a href="{{ url_for('start') }}" class="btn btn-primary">去探索美食</a>
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+/* 排行榜列表样式 */
+.ranking-list {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+.ranking-item {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: all 0.3s ease;
+    position: relative;
+    background: linear-gradient(135deg, #fff 0%, #fafafa 100%);
+}
+
+.ranking-item:hover {
+    background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.ranking-item:last-child {
+    border-bottom: none;
+}
+
+/* 排名徽章 */
+.rank-badge {
+    flex-shrink: 0;
+    width: 60px;
+    text-align: center;
+    margin-right: 20px;
+}
+
+.badge-rank {
+    font-size: 1.2rem;
+    padding: 12px;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.rank-1 {
+    background: linear-gradient(45deg, #FFD700, #FFA500);
+    color: white;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+}
+
+.rank-2 {
+    background: linear-gradient(45deg, #C0C0C0, #A8A8A8);
+    color: white;
+    box-shadow: 0 4px 15px rgba(192, 192, 192, 0.4);
+}
+
+.rank-3 {
+    background: linear-gradient(45deg, #CD7F32, #8B4513);
+    color: white;
+    box-shadow: 0 4px 15px rgba(205, 127, 50, 0.4);
+}
+
+.rank-number {
+    background: linear-gradient(45deg, #6c757d, #495057);
+    color: white;
+    font-size: 1rem;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-weight: bold;
+}
+
+/* 食品图片 */
+.food-image {
+    flex-shrink: 0;
+    width: 80px;
+    height: 80px;
+    margin-right: 20px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.img-cover {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.ranking-item:hover .img-cover {
+    transform: scale(1.05);
+}
+
+.img-placeholder {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #e9ecef, #dee2e6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6c757d;
+    font-size: 1.5rem;
+}
+
+/* 食品信息 */
+.food-info {
+    flex: 1;
+    margin-right: 20px;
+}
+
+.food-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.food-name {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.floor-badge {
+    background: linear-gradient(45deg, #3498db, #2980b9);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.food-description {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin: 8px 0;
+    line-height: 1.4;
+}
+
+.food-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.meal-tag, .category-tag {
+    background: #f8f9fa;
+    color: #495057;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    border: 1px solid #e9ecef;
+}
+
+.meal-tag {
+    background: linear-gradient(45deg, #e8f5e8, #d4edda);
+    border-color: #c3e6cb;
+}
+
+/* 统计数据 */
+.food-stats {
+    display: flex;
+    gap: 20px;
+    margin-right: 20px;
+    align-items: center;
+}
+
+.stat-item {
+    text-align: center;
+    min-width: 70px;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-bottom: 4px;
+}
+
+.stat-value {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.stars {
+    margin-bottom: 2px;
+}
+
+.star-filled {
+    color: #ffc107;
+}
+
+.star-empty {
+    color: #e9ecef;
+}
+
+.rating-number {
+    font-size: 0.9rem;
+    color: #ffc107;
+    font-weight: bold;
+}
+
+.comment-count {
+    color: #17a2b8;
+    font-size: 1.1rem;
+}
+
+.score-value {
+    color: #28a745;
+    font-size: 1.1rem;
+}
+
+.no-rating {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+/* 查看详情按钮 */
+.food-action {
+    flex-shrink: 0;
+}
+
+.view-detail-btn {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    border: none;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+.view-detail-btn:hover {
+    background: linear-gradient(45deg, #0056b3, #004085);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+}
+
+/* 排行榜按钮组样式 */
+.ranking-btn-group {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.ranking-btn {
+    border-radius: 25px;
+    font-weight: 500;
+    padding: 10px 25px;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 120px;
+    justify-content: center;
+    font-size: 0.95rem;
+}
+
+.ranking-btn.btn-primary {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    border: none;
+    color: white;
+    box-shadow: 0 3px 10px rgba(0, 123, 255, 0.3);
+}
+
+.ranking-btn.btn-outline-primary {
+    border: 2px solid #007bff;
+    background: transparent;
+    color: #007bff;
+}
+
+.ranking-btn.btn-outline-primary:hover {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+}
+
+.ranking-btn.btn-primary:hover {
+    background: linear-gradient(45deg, #0056b3, #004085);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.5);
+}
+
+/* 空状态样式 */
+.empty-state {
+    background: #fff;
+    border-radius: 12px;
+    padding: 60px 40px;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+}
+
+/* 用户排行榜样式 */
+.user-item {
+    background: linear-gradient(135deg, #f8f9ff 0%, #e8f4f8 100%);
+}
+
+.user-item:hover {
+    background: linear-gradient(135deg, #e8f4f8 0%, #d0e8ff 100%);
+}
+
+.user-avatar {
+    flex-shrink: 0;
+    width: 80px;
+    height: 80px;
+    margin-right: 20px;
+    border-radius: 50%;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #6c5ce7, #74b9ff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 2rem;
+}
+
+.user-info {
+    flex: 1;
+    margin-right: 20px;
+}
+
+.user-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.user-name {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.role-badge {
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: white;
+}
+
+.role-user {
+    background: linear-gradient(45deg, #95a5a6, #7f8c8d);
+}
+
+.role-connoisseur {
+    background: linear-gradient(45deg, #27ae60, #2ecc71);
+}
+
+.role-admin {
+    background: linear-gradient(45deg, #3498db, #2980b9);
+}
+
+.role-superadmin {
+    background: linear-gradient(45deg, #e74c3c, #c0392b);
+}
+
+.user-stats-summary {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.stat-chip {
+    background: rgba(255, 255, 255, 0.8);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    color: #555;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.user-stats {
+    display: flex;
+    gap: 20px;
+    margin-right: 20px;
+    align-items: center;
+}
+
+.user-stats .stat-item {
+    text-align: center;
+    min-width: 70px;
+}
+
+.rating-value {
+    color: #f39c12;
+    font-size: 1.1rem;
+}
+
+.active-days {
+    color: #8e44ad;
+    font-size: 1.1rem;
+}
+
+.user-role {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    width: 60px;
+    justify-content: center;
+}
+
+.role-icon {
+    font-size: 1.5rem;
+    padding: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .ranking-btn-group {
+        justify-content: center;
+        gap: 10px;
+    }
+    
+    .ranking-btn {
+        min-width: 100px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+    }
+    
+    .ranking-item {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 15px;
+    }
+    
+    .rank-badge {
+        margin-bottom: 10px;
+        margin-right: 0;
+        align-self: center;
+    }
+    
+    .food-image {
+        margin-right: 0;
+        margin-bottom: 15px;
+        align-self: center;
+    }
+    
+    .food-info {
+        margin-right: 0;
+        margin-bottom: 15px;
+        width: 100%;
+    }
+    
+    .food-stats {
+        margin-right: 0;
+        margin-bottom: 15px;
+        justify-content: space-around;
+        width: 100%;
+    }
+    
+    .food-action {
+        align-self: center;
+    }
+    
+    /* 用户排行榜移动端样式 */
+    .user-item {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 20px;
+    }
+    
+    .user-avatar {
+        margin-right: 0;
+        margin-bottom: 15px;
+    }
+    
+    .user-info {
+        margin-right: 0;
+        margin-bottom: 15px;
+        width: 100%;
+    }
+    
+    .user-header {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .user-stats-summary {
+        justify-content: center;
+    }
+    
+    .user-stats {
+        margin-right: 0;
+        margin-bottom: 15px;
+        justify-content: space-around;
+        width: 100%;
+    }
+    
+    .user-role {
+        width: auto;
+    }
+}
+
+@media (max-width: 576px) {
+    .ranking-btn-group {
+        flex-direction: column;
+        gap: 12px;
+        width: 100%;
+    }
+    
+    .ranking-btn {
+        width: 100%;
+        max-width: 200px;
+        margin: 0 auto;
+    }
+    
+    .food-stats {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .stat-item {
+        min-width: auto;
+    }
+}
+</style>
+{% endblock %} 

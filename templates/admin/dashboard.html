@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}RDFZ食堂大众点评 - 管理面板{% endblock %}
+
+{% block styles %}
+<style>
+    .admin-container {
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    
+    .admin-header {
+        background-color: #2c3e50;
+        color: white;
+        padding: 2rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    
+    .admin-title {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    
+    .admin-subtitle {
+        color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2rem;
+    }
+    
+    .admin-card {
+        background-color: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+    
+    .admin-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+    
+    .card-header {
+        background-color: #3498db;
+        color: white;
+        padding: 1.5rem;
+        text-align: center;
+    }
+    
+    .card-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+    
+    .card-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    
+    .card-content {
+        padding: 1.5rem;
+        color: #7f8c8d;
+        text-align: center;
+    }
+    
+    .card-link {
+        display: block;
+        padding: 1rem;
+        text-align: center;
+        background-color: #f8f9fa;
+        color: #3498db;
+        font-weight: bold;
+        text-decoration: none;
+        transition: background-color 0.3s;
+    }
+    
+    .card-link:hover {
+        background-color: #ecf0f1;
+    }
+    
+    .users-card .card-header {
+        background-color: #9b59b6;
+    }
+    
+    .users-card .card-link {
+        color: #9b59b6;
+    }
+    
+    .feedback-card .card-header {
+        background-color: #e74c3c;
+    }
+    
+    .feedback-card .card-link {
+        color: #e74c3c;
+    }
+    
+    .traffic-card .card-header {
+        background-color: #9c27b0;
+    }
+    
+    .traffic-card .card-link {
+        color: #9c27b0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 2rem; max-width: 1200px; margin: 0 auto;">
+    <div class="admin-container">
+        <div class="admin-header">
+            <div class="admin-title">管理控制面板</div>
+            <div class="admin-subtitle">
+                欢迎回来，{{ session.get('username') }}！
+                {% if session.get('role') == 'superadmin' %}
+                    (超级管理员)
+                {% else %}
+                    (管理员)
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card-grid">
+            <div class="admin-card foods-card">
+                <div class="card-header">
+                    <div class="card-icon">🍽️</div>
+                    <div class="card-title">食品管理</div>
+                </div>
+                <div class="card-content">
+                    管理食堂食品信息，包括添加、编辑、删除食品
+                </div>
+                <a href="{{ url_for('admin_foods') }}" class="card-link">进入管理</a>
+            </div>
+            
+            <div class="admin-card users-card">
+                <div class="card-header">
+                    <div class="card-icon">👥</div>
+                    <div class="card-title">用户管理</div>
+                </div>
+                <div class="card-content">
+                    管理系统用户，查看用户信息和权限管理
+                </div>
+                <a href="{{ url_for('admin_users') }}" class="card-link">进入管理</a>
+            </div>
+            
+            <div class="admin-card feedback-card">
+                <div class="card-header">
+                    <div class="card-icon">💬</div>
+                    <div class="card-title">反馈管理</div>
+                </div>
+                <div class="card-content">
+                    查看和处理用户反馈信息
+                </div>
+                <a href="{{ url_for('admin_feedback') }}" class="card-link">进入管理</a>
+            </div>
+            
+            <div class="admin-card traffic-card">
+                <div class="card-header">
+                    <div class="card-icon">📊</div>
+                    <div class="card-title">流量监测</div>
+                </div>
+                <div class="card-content">
+                    实时监控网站流量、IP访问和自动防御
+                </div>
+                <a href="{{ url_for('admin_traffic') }}" class="card-link">进入监测</a>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 3rem;">
+            <a href="{{ url_for('index') }}" class="start-btn" style="background-color: #7f8c8d;">返回主页</a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}RDFZ食堂大众点评 - 我的评论{% endblock %}
+
+{% block styles %}
+<style>
+    .reviews-container {
+        max-width: 900px;
+        margin: 20px auto;
+        padding: 20px;
+    }
+    
+    .review-card {
+        border: 1px solid #eee;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        background-color: white;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    .review-header {
+        display: flex;
+        justify-content: space-between;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+    }
+    
+    .review-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #333;
+    }
+    
+    .review-food {
+        color: #4a6bdf;
+    }
+    
+    .review-date {
+        color: #999;
+        font-size: 14px;
+    }
+    
+    .review-content {
+        color: #333;
+        margin-bottom: 15px;
+    }
+    
+    .review-rating {
+        color: #FFD700;
+        margin-bottom: 10px;
+    }
+    
+    .review-actions {
+        display: flex;
+        justify-content: flex-end;
+    }
+    
+    .btn {
+        padding: 6px 12px;
+        border-radius: 4px;
+        margin-left: 10px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+    
+    .btn-primary {
+        background-color: #4a6bdf;
+        color: white;
+        border: none;
+    }
+    
+    .btn-danger {
+        background-color: #e74c3c;
+        color: white;
+        border: none;
+    }
+    
+    .empty-reviews {
+        text-align: center;
+        padding: 40px 20px;
+        background-color: #f9f9f9;
+        border-radius: 8px;
+        color: #888;
+    }
+    
+    .empty-reviews p {
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="reviews-container">
+    <h1>我的评论历史</h1>
+    
+    {% if reviews and reviews|length > 0 %}
+        {% for review in reviews %}
+        <div id="review-{{ review.id }}" class="review-card">
+            <div class="review-header">
+                <div class="review-title">
+                    <span class="review-food">{{ review.food_name }}</span>
+                </div>
+                <span class="review-date">
+                    {% if review.created_at is string %}
+                        {{ review.created_at.split(' ')[0] }}
+                    {% else %}
+                        {{ review.created_at.strftime('%Y-%m-%d') }}
+                    {% endif %}
+                </span>
+            </div>
+            <div class="review-rating">
+                {% for i in range(review.rating) %}
+                    <i class="fas fa-star"></i>
+                {% endfor %}
+                {% for i in range(5 - review.rating) %}
+                    <i class="far fa-star"></i>
+                {% endfor %}
+            </div>
+            <div class="review-content">
+                {{ review.comment }}
+            </div>
+            <div class="review-actions">
+                <a href="{{ url_for('food_detail', food_id=review.food_id) }}" class="btn btn-primary">查看菜品</a>
+                <button class="btn btn-danger delete-review" data-id="{{ review.id }}">删除评论</button>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="empty-reviews">
+        <p>您还没有发表过评论</p>
+        <a href="{{ url_for('start') }}" class="btn btn-primary">去浏览菜品</a>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 删除评论功能
+        const deleteButtons = document.querySelectorAll('.delete-review');
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const reviewId = this.getAttribute('data-id');
+                if (confirm('确定要删除这条评论吗？此操作不可撤销。')) {
+                    fetch(`/api/delete_review/${reviewId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const reviewCard = document.getElementById(`review-${reviewId}`);
+                            reviewCard.style.opacity = '0';
+                            setTimeout(() => {
+                                reviewCard.remove();
+                                
+                                // 检查是否还有评论
+                                if (document.querySelectorAll('.review-card').length === 0) {
+                                    const container = document.querySelector('.reviews-container');
+                                    container.innerHTML = `
+                                        <h1>我的评论历史</h1>
+                                        <div class="empty-reviews">
+                                            <p>您还没有发表过评论</p>
+                                            <a href="{{ url_for('start') }}" class="btn btn-primary">去浏览菜品</a>
+                                        </div>
+                                    `;
+                                }
+                            }, 300);
+                            
+                            reviewCard.style.transition = 'opacity 0.3s';
+                        } else {
+                            alert('删除失败: ' + (data.message || '未知错误'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('删除失败，请稍后再试');
+                    });
+                }
+            });
+        });
+    });
+</script>
+{% endblock %} 

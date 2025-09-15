@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}RDFZ食堂大众点评{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.svg') }}" type="image/svg+xml">
+    <link rel="alternate icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .logo a {
+            color: white;
+            text-decoration: none;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+        }
+        
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+        }
+        
+        main {
+            min-height: calc(100vh - 130px);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .flash-messages {
+            padding: 0.8rem 1.5rem;
+            margin-bottom: 1rem;
+            border-radius: 5px;
+        }
+        
+        .flash-error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .flash-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .flash-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        footer {
+            background-color: #2c3e50;
+            color: white;
+            padding: 1.5rem 2rem;
+        }
+        
+        .footer-links {
+            display: flex;
+            justify-content: space-between;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .footer-item {
+            text-align: center;
+        }
+        
+        .footer-title {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #ffffff;
+        }
+        
+        .footer-link {
+            color: #ffffff;
+            text-decoration: none;
+        }
+        
+        .highlight-aether {
+            background: linear-gradient(90deg, #ff0066, #ff9933, #33cc33, #3399ff, #cc33ff, #ff0066);
+            background-size: 300% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: slowColorShift 5s linear infinite;
+            text-shadow: none;
+            padding: 0 5px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        @keyframes slowColorShift {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 300% 50%; }
+        }
+    </style>
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <header>
+        <div class="logo"><a href="{{ url_for('index') }}">RDFZ食堂大众点评</a></div>
+        <div class="nav-links">
+            {% if session.get('logged_in') %}
+                <a href="{{ url_for('index') }}">首页</a>
+                <a href="{{ url_for('rankings') }}">排行榜</a>
+                <a href="{{ url_for('my_reviews') }}">我的评论</a>
+                <a href="{{ url_for('profile') }}">个人中心</a>
+                {% if session.get('role') in ['admin', 'superadmin'] %}
+                    <a href="{{ url_for('admin_dashboard') }}">管理</a>
+                {% endif %}
+                <a href="{{ url_for('logout') }}">退出</a>
+            {% else %}
+                <a href="{{ url_for('index') }}">首页</a>
+                <a href="{{ url_for('login') }}">登录</a>
+                <a href="{{ url_for('register') }}">注册</a>
+            {% endif %}
+            <form class="search-form" action="{{ url_for('search') }}" method="get">
+                <input type="text" name="q" placeholder="搜索美食..." class="search-input">
+                <button type="submit" class="search-btn"><i class="fas fa-search"></i></button>
+            </form>
+        </div>
+    </header>
+
+    <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-messages flash-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <div class="footer-links">
+            <div class="footer-item">
+                <div class="footer-title">人大附中</div>
+                <a href="https://www.rdfz.cn" class="footer-link">关于</a>
+            </div>
+            <div class="footer-item">
+                <div class="footer-title">开发团队</div>
+                <a href="{{ url_for('about_team') }}" class="footer-link"><span class="highlight-aether">Aether</span></a>
+            </div>
+            <div class="footer-item">
+                <div class="footer-title">反馈意见</div>
+                <a href="{{ url_for('feedback') }}" class="footer-link">关于</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html> 

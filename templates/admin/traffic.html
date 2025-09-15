@@ -1,0 +1,733 @@
+{% extends "base.html" %}
+
+{% block title %}RDFZ食堂大众点评 - 流量监测{% endblock %}
+
+{% block styles %}
+<style>
+    .traffic-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .traffic-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    
+    .traffic-title {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    
+    .traffic-subtitle {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 1.1rem;
+    }
+    
+    .current-ip-info {
+        margin-top: 1rem;
+        padding: 0.8rem 1.5rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        display: inline-block;
+        backdrop-filter: blur(10px);
+    }
+    
+    .ip-label {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1rem;
+        font-weight: 500;
+    }
+    
+    .ip-address {
+        color: #fff;
+        font-size: 1.1rem;
+        font-weight: bold;
+        font-family: 'Courier New', monospace;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 0.3rem 0.8rem;
+        border-radius: 4px;
+        margin-left: 0.5rem;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        transition: transform 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #667eea;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-label {
+        color: #666;
+        font-size: 1rem;
+    }
+    
+    .section {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #667eea;
+    }
+    
+    .table-container {
+        overflow-x: auto;
+    }
+    
+    .traffic-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+    }
+    
+    .traffic-table th,
+    .traffic-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .traffic-table th {
+        background-color: #f8f9fa;
+        font-weight: bold;
+        color: #333;
+    }
+    
+    .traffic-table tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .ip-address {
+        font-family: monospace;
+        background-color: #f1f3f4;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.9rem;
+    }
+    
+    .status-badge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+    
+    .status-blocked {
+        background-color: #fee;
+        color: #d32f2f;
+    }
+    
+    .status-active {
+        background-color: #e8f5e8;
+        color: #2e7d32;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .btn {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-block {
+        background-color: #f44336;
+        color: white;
+    }
+    
+    .btn-block:hover {
+        background-color: #d32f2f;
+    }
+    
+    .btn-unblock {
+        background-color: #4caf50;
+        color: white;
+    }
+    
+    .btn-unblock:hover {
+        background-color: #388e3c;
+    }
+    
+    .btn-export {
+        background-color: #2196f3;
+        color: white;
+        padding: 10px 20px;
+        font-size: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .btn-export:hover {
+        background-color: #1976d2;
+    }
+    
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+    
+    .modal-content {
+        background-color: white;
+        margin: 15% auto;
+        padding: 2rem;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 500px;
+    }
+    
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .close {
+        font-size: 2rem;
+        cursor: pointer;
+        color: #aaa;
+    }
+    
+    .close:hover {
+        color: #333;
+    }
+    
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: bold;
+    }
+    
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 1rem;
+    }
+    
+    .alert {
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 1rem;
+    }
+    
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .alert-error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .refresh-btn {
+        background-color: #ff9800;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        margin-bottom: 1rem;
+    }
+    
+    .refresh-btn:hover {
+        background-color: #f57c00;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="traffic-container">
+    <div class="traffic-header">
+        <h1 class="traffic-title">流量监测系统</h1>
+        <p class="traffic-subtitle">实时监控网站流量、IP访问和自动防御（封禁标准：1分钟内超过50MB、120分钟内超过150MB、24小时内超过300MB流量）</p>
+        <div class="current-ip-info">
+            <span class="ip-label">当前访问IP：</span>
+            <span class="ip-address">{{ current_ip }}</span>
+        </div>
+    </div>
+    
+    <!-- 流量总览 -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number">{{ summary.total_requests or 0 }}</div>
+            <div class="stat-label">总访问量</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ "%.2f"|format((summary.total_bytes or 0) / 1024 / 1024) }} MB</div>
+            <div class="stat-label">总流量</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ summary.today_requests or 0 }}</div>
+            <div class="stat-label">今日访问量</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ "%.2f"|format((summary.today_bytes or 0) / 1024 / 1024) }} MB</div>
+            <div class="stat-label">今日流量</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ summary.hour_requests or 0 }}</div>
+            <div class="stat-label">最近1小时</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ "%.2f"|format((summary.hour_bytes or 0) / 1024 / 1024) }} MB</div>
+            <div class="stat-label">最近1小时流量</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ summary.active_ips or 0 }}</div>
+            <div class="stat-label">活跃IP数</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ summary.blocked_ips or 0 }}</div>
+            <div class="stat-label">被封锁IP数</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ summary.permanent_blocks or 0 }}</div>
+            <div class="stat-label">永久封锁IP数</div>
+        </div>
+    </div>
+    
+    <!-- 操作按钮 -->
+    <div class="section">
+        <div class="action-buttons">
+            <button class="btn btn-export" onclick="exportLogs()">导出访问日志</button>
+            <button class="btn btn-export" onclick="cleanupBlocks()">清理过期封锁</button>
+            <button class="btn btn-export" onclick="cleanupDuplicateBlocks()">清理重复封锁</button>
+            <button class="refresh-btn" onclick="refreshData()">刷新数据</button>
+        </div>
+    </div>
+    
+    <!-- IP流量统计 -->
+    <div class="section">
+        <h2 class="section-title">IP流量统计</h2>
+        <div class="table-container">
+            <table class="traffic-table">
+                <thead>
+                    <tr>
+                        <th>IP地址</th>
+                        <th>总请求数</th>
+                        <th>总流量</th>
+                        <th>最近1小时</th>
+                        <th>最近24小时</th>
+                        <th>平均响应时间</th>
+                        <th>首次访问</th>
+                        <th>最后访问</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stat in traffic_stats %}
+                    <tr>
+                        <td><span class="ip-address">{{ stat.ip_address }}</span></td>
+                        <td>{{ stat.total_requests }}</td>
+                        <td>{{ "%.2f"|format(stat.total_bytes / 1024) }} KB</td>
+                        <td>
+                            {{ stat.hour_requests }} 次<br>
+                            <small>{{ "%.2f"|format(stat.hour_bytes / 1024) }} KB</small>
+                        </td>
+                        <td>
+                            {{ stat.day_requests }} 次<br>
+                            <small>{{ "%.2f"|format(stat.day_bytes / 1024) }} KB</small>
+                        </td>
+                        <td>{{ "%.3f"|format(stat.avg_response_time or 0) }}s</td>
+                        <td>{{ stat.first_access }}</td>
+                        <td>{{ stat.last_access }}</td>
+                        <td>
+                            {% if stat.is_blocked %}
+                            <span class="status-badge status-blocked">已封锁</span>
+                            {% else %}
+                            <span class="status-badge status-active">正常</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                {% if stat.is_blocked %}
+                                <button class="btn btn-unblock" onclick="unblockIP('{{ stat.ip_address }}')">解除封锁</button>
+                                {% else %}
+                                <button class="btn btn-block" onclick="showBlockModal('{{ stat.ip_address }}')">封锁IP</button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- 访问日志 -->
+    <div class="section">
+        <h2 class="section-title">最近访问日志</h2>
+        <div class="table-container">
+            <table class="traffic-table">
+                <thead>
+                    <tr>
+                        <th>时间</th>
+                        <th>IP地址</th>
+                        <th>用户名</th>
+                        <th>端点</th>
+                        <th>方法</th>
+                        <th>响应时间</th>
+                        <th>流量</th>
+                        <th>状态码</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in access_logs %}
+                    <tr>
+                        <td>{{ log.created_at }}</td>
+                        <td><span class="ip-address">{{ log.ip_address }}</span></td>
+                        <td>{{ log.username or '未登录' }}</td>
+                        <td>{{ log.endpoint }}</td>
+                        <td>{{ log.method }}</td>
+                        <td>{{ "%.3f"|format(log.response_time) }}s</td>
+                        <td>{{ "%.2f"|format(log.bytes_sent / 1024) }} KB</td>
+                        <td>{{ log.status_code }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- IP封锁记录 -->
+    <div class="section">
+        <h2 class="section-title">IP封锁记录</h2>
+        <div class="table-container">
+            <table class="traffic-table">
+                <thead>
+                    <tr>
+                        <th>IP地址</th>
+                        <th>封锁原因</th>
+                        <th>封锁类型</th>
+                        <th>持续时间</th>
+                        <th>创建时间</th>
+                        <th>过期时间</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for block in ip_blocks %}
+                    <tr>
+                        <td><span class="ip-address">{{ block.ip_address }}</span></td>
+                        <td>{{ block.reason }}</td>
+                        <td>{{ '自动' if block.block_type == 'auto' else '手动' }}</td>
+                        <td>
+                            {% if block.duration_hours == 0 %}
+                            永久
+                            {% else %}
+                            {{ block.duration_hours }}小时
+                            {% endif %}
+                        </td>
+                        <td>{{ block.created_at }}</td>
+                        <td>
+                            {% if block.expires_at %}
+                            {{ block.expires_at }}
+                            {% else %}
+                            永久
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if block.is_active %}
+                            <span class="status-badge status-blocked">生效中</span>
+                            {% else %}
+                            <span class="status-badge status-active">已过期</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                {% if block.is_active %}
+                                <button class="btn btn-unblock" onclick="unblockIP('{{ block.ip_address }}')">解除封锁</button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 封锁IP模态框 -->
+<div id="blockModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>封锁IP地址</h3>
+            <span class="close" onclick="closeBlockModal()">&times;</span>
+        </div>
+        <form id="blockForm">
+            <div class="form-group">
+                <label for="ipAddress">IP地址:</label>
+                <input type="text" id="ipAddress" name="ipAddress" readonly>
+            </div>
+            <div class="form-group">
+                <label for="blockReason">封锁原因:</label>
+                <textarea id="blockReason" name="blockReason" rows="3" placeholder="请输入封锁原因..." required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="blockDuration">封锁时长:</label>
+                <select id="blockDuration" name="blockDuration">
+                    <option value="0">永久封锁</option>
+                    <option value="1">1小时</option>
+                    <option value="6">6小时</option>
+                    <option value="12">12小时</option>
+                    <option value="24" selected>24小时</option>
+                    <option value="48">48小时</option>
+                    <option value="168">7天</option>
+                </select>
+            </div>
+            <div class="action-buttons">
+                <button type="submit" class="btn btn-block">确认封锁</button>
+                <button type="button" class="btn" onclick="closeBlockModal()">取消</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 消息提示 -->
+<div id="alertContainer" style="position: fixed; top: 20px; right: 20px; z-index: 1001;"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentIP = '';
+
+function showBlockModal(ipAddress) {
+    currentIP = ipAddress;
+    document.getElementById('ipAddress').value = ipAddress;
+    document.getElementById('blockModal').style.display = 'block';
+}
+
+function closeBlockModal() {
+    document.getElementById('blockModal').style.display = 'none';
+    document.getElementById('blockForm').reset();
+}
+
+function showAlert(message, type = 'success') {
+    const alertContainer = document.getElementById('alertContainer');
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type}`;
+    alert.textContent = message;
+    
+    alertContainer.appendChild(alert);
+    
+    setTimeout(() => {
+        alert.remove();
+    }, 5001);
+}
+
+async function blockIP() {
+    const reason = document.getElementById('blockReason').value;
+    const duration = document.getElementById('blockDuration').value;
+    
+    if (!reason.trim()) {
+        showAlert('请输入封锁原因', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/admin/traffic/block_ip', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                ip_address: currentIP,
+                reason: reason,
+                duration_hours: parseInt(duration)
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            const durationText = duration === '0' ? '永久' : `${duration}小时`;
+            showAlert(`IP ${currentIP} 已被${durationText}封锁`);
+            closeBlockModal();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(result.error, 'error');
+        }
+    } catch (error) {
+        showAlert('操作失败，请重试', 'error');
+    }
+}
+
+async function unblockIP(ipAddress) {
+    if (!confirm(`确定要解除IP ${ipAddress} 的封锁吗？`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/admin/traffic/unblock_ip', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                ip_address: ipAddress
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert(result.message);
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(result.error, 'error');
+        }
+    } catch (error) {
+        showAlert('操作失败，请重试', 'error');
+    }
+}
+
+async function cleanupBlocks() {
+    if (!confirm('确定要清理过期的封锁记录吗？')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/admin/traffic/cleanup_blocks', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert(result.message);
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(result.error, 'error');
+        }
+    } catch (error) {
+        showAlert('操作失败，请重试', 'error');
+    }
+}
+
+async function cleanupDuplicateBlocks() {
+    if (!confirm('确定要清理重复的IP封锁记录吗？这将保留每个IP的最新封锁记录。')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/admin/traffic/cleanup_duplicates', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert(result.message);
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(result.error, 'error');
+        }
+    } catch (error) {
+        showAlert('操作失败，请重试', 'error');
+    }
+}
+
+function exportLogs() {
+    window.location.href = '/admin/traffic/export_logs';
+}
+
+function refreshData() {
+    location.reload();
+}
+
+// 表单提交事件
+document.getElementById('blockForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    blockIP();
+});
+
+// 点击模态框外部关闭
+window.onclick = function(event) {
+    const modal = document.getElementById('blockModal');
+    if (event.target === modal) {
+        closeBlockModal();
+    }
+}
+
+// 自动刷新数据（每30秒）
+setInterval(() => {
+    // 只刷新统计数据，不刷新整个页面
+    fetch('/admin/traffic')
+        .then(response => response.text())
+        .then(html => {
+            // 这里可以解析HTML并更新特定部分
+            // 为了简单起见，我们只更新页面标题显示最后更新时间
+            const now = new Date();
+            document.title = `RDFZ食堂大众点评 - 流量监测 (${now.toLocaleTimeString()})`;
+        })
+        .catch(error => console.log('自动刷新失败:', error));
+}, 30000);
+</script>
+{% endblock %}

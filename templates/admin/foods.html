@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}RDFZ食堂大众点评 - 菜品管理{% endblock %}
+
+{% block styles %}
+<style>
+    .admin-container {
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    
+    .admin-header {
+        background-color: #2c3e50;
+        color: white;
+        padding: 2rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    
+    .admin-title {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    
+    .admin-subtitle {
+        color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .admin-section {
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+        overflow: hidden;
+    }
+    
+    .section-title {
+        background-color: #3498db;
+        color: white;
+        padding: 1rem 2rem;
+        font-size: 1.3rem;
+        font-weight: bold;
+    }
+    
+    .section-content {
+        padding: 2rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #2c3e50;
+        font-weight: 500;
+    }
+    
+    .form-group input, .form-group select, .form-group textarea {
+        width: 100%;
+        padding: 0.8rem;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 1rem;
+    }
+    
+    .form-group textarea {
+        min-height: 100px;
+        resize: vertical;
+    }
+    
+    .form-row {
+        display: flex;
+        gap: 1rem;
+    }
+    
+    .form-col {
+        flex: 1;
+    }
+    
+    .submit-btn {
+        padding: 0.8rem 1.5rem;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 1rem;
+        cursor: pointer;
+    }
+    
+    .table-container {
+        overflow-x: auto;
+    }
+    
+    .admin-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .admin-table th {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        text-align: left;
+        font-weight: bold;
+        color: #2c3e50;
+        border-bottom: 2px solid #ecf0f1;
+    }
+    
+    .admin-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #ecf0f1;
+        color: #7f8c8d;
+    }
+    
+    .admin-table tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .food-name {
+        font-weight: bold;
+        color: #2c3e50;
+    }
+    
+    .food-location {
+        font-size: 0.9rem;
+    }
+    
+    .food-description {
+        max-width: 300px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .action-btn {
+        display: inline-block;
+        padding: 0.5rem 0.8rem;
+        border-radius: 5px;
+        text-decoration: none;
+        margin-right: 0.5rem;
+        font-size: 0.9rem;
+        color: white;
+    }
+    
+    .edit-btn {
+        background-color: #3498db;
+    }
+    
+    .delete-btn {
+        background-color: #e74c3c;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #7f8c8d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 2rem; max-width: 1200px; margin: 0 auto;">
+    <div class="admin-container">
+        <div class="admin-header">
+            <div class="admin-title">菜品管理</div>
+            <div class="admin-subtitle">管理食堂菜品信息</div>
+        </div>
+        
+        <div class="admin-section">
+            <div class="section-title">添加新菜品</div>
+            <div class="section-content">
+                <form action="{{ url_for('admin_foods') }}" method="post" enctype="multipart/form-data">
+                    <div class="form-row">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="name">菜品名称 *</label>
+                                <input type="text" id="name" name="name" required>
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="floor_id">所在楼层 *</label>
+                                <select id="floor_id" name="floor_id" required>
+                                    {% for floor in floors %}
+                                        <option value="{{ floor.id }}">{{ floor.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="meal_time">供应时段 (仅一层需要选择)</label>
+                                <select id="meal_time" name="meal_time">
+                                    <option value="">全天供应</option>
+                                    <option value="breakfast">早餐</option>
+                                    <option value="lunch">午餐</option>
+                                    <option value="dinner">晚餐</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-col">
+                            <div class="form-group">
+                                <label for="price">价格 (元)</label>
+                                <input type="number" id="price" name="price" step="0.1" min="0" placeholder="例如：12.5">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">菜品描述</label>
+                        <textarea id="description" name="description"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="cover_image">封面图片</label>
+                        <input type="file" id="cover_image" name="cover_image" accept="image/*">
+                    </div>
+                    
+                    <button type="submit" class="submit-btn">添加菜品</button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="admin-section">
+            <div class="section-title">所有菜品</div>
+            <div class="section-content">
+                {% if foods %}
+                    <div class="table-container">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>菜品</th>
+                                    <th>位置</th>
+                                    <th>评分</th>
+                                    <th>价格</th>
+                                    <th>描述</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for food in foods %}
+                                    <tr>
+                                        <td>
+                                            <div class="food-name">{{ food.name }}</div>
+                                            {% if food.meal_time %}
+                                                <div class="food-location">
+                                                    {% if food.meal_time == 'breakfast' %}
+                                                        早餐
+                                                    {% elif food.meal_time == 'lunch' %}
+                                                        午餐
+                                                    {% elif food.meal_time == 'dinner' %}
+                                                        晚餐
+                                                    {% endif %}
+                                                </div>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ food.floor_name }}</td>
+                                        <td>{{ food.avg_rating | round(1) }}</td>
+                                        <td>{{ '¥%.1f'|format(food.price) if food.price else '未设置' }}</td>
+                                        <td class="food-description">{{ food.description or '暂无描述' }}</td>
+                                        <td>
+                                            <a href="{{ url_for('admin_edit_food', food_id=food.id) }}" class="action-btn edit-btn">编辑</a>
+                                            <form action="{{ url_for('admin_delete_food', food_id=food.id) }}" method="post" style="display: inline;">
+                                                <button type="submit" class="action-btn delete-btn" onclick="return confirm('确定要删除这个菜品吗？')">删除</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <h2>暂无菜品</h2>
+                        <p>目前还没有添加任何菜品，请使用上方表单添加菜品。</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="{{ url_for('admin_dashboard') }}" class="start-btn" style="background-color: #7f8c8d;">返回管理面板</a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

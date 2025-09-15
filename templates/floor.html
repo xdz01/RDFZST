@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}RDFZ食堂大众点评 - {{ floor.name }}{% endblock %}
+
+{% block styles %}
+<style>
+    .floor-header {
+        background-color: #3498db;
+        color: white;
+        padding: 2rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    
+    .floor-title {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    
+    .floor-description {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 1.1rem;
+    }
+    
+    .meal-tabs {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 2rem;
+    }
+    
+    .meal-tab {
+        padding: 0.8rem 1.5rem;
+        background-color: #f8f9fa;
+        color: #7f8c8d;
+        border: none;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .meal-tab:first-child {
+        border-top-left-radius: 5px;
+        border-bottom-left-radius: 5px;
+    }
+    
+    .meal-tab:last-child {
+        border-top-right-radius: 5px;
+        border-bottom-right-radius: 5px;
+    }
+    
+    .meal-tab.active {
+        background-color: #3498db;
+        color: white;
+    }
+    
+    .food-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2rem;
+    }
+    
+    .food-card {
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        transition: transform 0.3s;
+    }
+    
+    .food-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .food-image {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+    }
+    
+    .food-placeholder {
+        width: 100%;
+        height: 200px;
+        background-color: #ecf0f1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: #bdc3c7;
+        font-size: 1.2rem;
+    }
+    
+    .food-info {
+        padding: 1.5rem;
+    }
+    
+    .food-name {
+        font-size: 1.3rem;
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+    
+    .food-rating {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .stars {
+        color: #f1c40f;
+        margin-right: 0.5rem;
+    }
+    
+    .rating-value {
+        font-weight: bold;
+        color: #2c3e50;
+    }
+    
+    .rating-count {
+        margin-left: 0.5rem;
+        color: #95a5a6;
+        font-size: 0.9rem;
+    }
+    
+    .food-meta {
+        color: #7f8c8d;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+    }
+    
+    .food-action {
+        text-align: right;
+    }
+    
+    .view-btn {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background-color: #3498db;
+        color: white;
+        border-radius: 5px;
+        text-decoration: none;
+        font-size: 0.9rem;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        color: #7f8c8d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 2rem; max-width: 1200px; margin: 0 auto;">
+    <div class="floor-header">
+        <div class="floor-title">{{ floor.name }}</div>
+        <div class="floor-description">{{ floor.description }}</div>
+    </div>
+    
+    {% if floor.id == 1 %}
+        <div class="meal-tabs">
+            <a href="{{ url_for('floor', floor_id=floor.id) }}" class="meal-tab {% if not meal_time %}active{% endif %}">全部</a>
+            <a href="{{ url_for('floor_meal', floor_id=floor.id, meal_time='breakfast') }}" class="meal-tab {% if meal_time == 'breakfast' %}active{% endif %}">早餐</a>
+            <a href="{{ url_for('floor_meal', floor_id=floor.id, meal_time='lunch') }}" class="meal-tab {% if meal_time == 'lunch' %}active{% endif %}">午餐</a>
+            <a href="{{ url_for('floor_meal', floor_id=floor.id, meal_time='dinner') }}" class="meal-tab {% if meal_time == 'dinner' %}active{% endif %}">晚餐</a>
+        </div>
+    {% endif %}
+    
+    {% if foods %}
+        <div class="food-grid">
+            {% for food in foods %}
+                <div class="food-card">
+                    {% if food.cover_image %}
+                        <img src="{{ url_for('static', filename='uploads/' + food.cover_image) }}" alt="{{ food.name }}" class="food-image">
+                    {% else %}
+                        <div class="food-placeholder">
+                            <i class="fas fa-image"></i>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="food-info">
+                        <div class="food-name">{{ food.name }}</div>
+                        <div class="food-rating">
+                            <div class="stars">
+                                {% for i in range(5) %}
+                                    {% if food.avg_rating and i < food.avg_rating|int %}
+                                        <i class="fas fa-star"></i>
+                                    {% elif food.avg_rating and i < food.avg_rating|float %}
+                                        <i class="fas fa-star-half-alt"></i>
+                                    {% else %}
+                                        <i class="far fa-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            <span class="rating-value">{{ "%.1f"|format(food.avg_rating|default(0)) }}</span>
+                            <span class="rating-count">({{ food.reviews|default([])|length }})</span>
+                        </div>
+                        
+                        {% if food.meal_time %}
+                            <div class="food-meta">
+                                <i class="far fa-clock"></i>
+                                {% if food.meal_time == 'breakfast' %}
+                                    早餐
+                                {% elif food.meal_time == 'lunch' %}
+                                    午餐
+                                {% elif food.meal_time == 'dinner' %}
+                                    晚餐
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        
+                        <div class="food-action">
+                            <a href="{{ url_for('food_detail', food_id=food.id) }}" class="view-btn">查看详情</a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <h3>当前没有菜品</h3>
+            {% if meal_time %}
+                <p>{{ {'breakfast': '早餐', 'lunch': '午餐', 'dinner': '晚餐'}.get(meal_time) }}时段暂无菜品</p>
+            {% else %}
+                <p>该楼层暂无菜品</p>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

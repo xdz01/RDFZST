@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}RDFZ食堂大众点评 - 一层{% endblock %}
+
+{% block styles %}
+<style>
+    .meal-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 2rem;
+        padding: 3rem;
+    }
+    
+    .meal-card {
+        width: 300px;
+        height: 250px;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        position: relative;
+        cursor: pointer;
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+    
+    .meal-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+    }
+    
+    .meal-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .meal-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.7));
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        font-weight: bold;
+    }
+    
+    .meal-title {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+        text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.5);
+    }
+    
+    .meal-desc {
+        font-size: 1.2rem;
+        text-align: center;
+        padding: 0 1rem;
+        text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+    }
+    
+    .zoom-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: white;
+        z-index: 1000;
+        display: none;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .zoom-content {
+        font-size: 3rem;
+        color: #2c3e50;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="zoom-overlay" id="zoomOverlay">
+    <div class="zoom-content">加载中...</div>
+</div>
+
+<div class="container" style="padding: 2rem; max-width: 1200px; margin: 0 auto;">
+    <h1 style="text-align: center; margin-bottom: 1rem; color: #2c3e50;">一层食堂</h1>
+    <h2 style="text-align: center; margin-bottom: 3rem; color: #7f8c8d;">请选择用餐时段</h2>
+    
+    <div class="meal-container">
+        <div class="meal-card" data-meal="breakfast">
+            <img src="{{ url_for('static', filename='images/bf.png') }}" alt="早餐" class="meal-image">
+            <div class="meal-overlay">
+                <div class="meal-title">早餐</div>
+                <div class="meal-desc">查看早餐菜品</div>
+            </div>
+        </div>
+        
+        <div class="meal-card" data-meal="lunch">
+            <img src="{{ url_for('static', filename='images/lch.png') }}" alt="午餐" class="meal-image">
+            <div class="meal-overlay">
+                <div class="meal-title">午餐</div>
+                <div class="meal-desc">查看午餐菜品</div>
+            </div>
+        </div>
+        
+        <div class="meal-card" data-meal="dinner">
+            <img src="{{ url_for('static', filename='images/din.png') }}" alt="晚餐" class="meal-image">
+            <div class="meal-overlay">
+                <div class="meal-title">晚餐</div>
+                <div class="meal-desc">查看晚餐菜品</div>
+            </div>
+        </div>
+    </div>
+    
+    <div style="text-align: center; margin-top: 2rem;">
+        <a href="{{ url_for('start') }}" class="start-btn" style="background-color: #7f8c8d;">返回楼层选择</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const mealCards = document.querySelectorAll('.meal-card');
+        const zoomOverlay = document.getElementById('zoomOverlay');
+        
+        mealCards.forEach(card => {
+            card.addEventListener('click', function() {
+                const mealTime = this.getAttribute('data-meal');
+                
+                // Show zoom effect
+                zoomOverlay.style.display = 'flex';
+                
+                // Make AJAX request to simulate loading
+                fetch('/api/zoom_effect')
+                    .then(response => response.json())
+                    .then(data => {
+                        // Redirect to meal page
+                        window.location.href = `/floor/1/${mealTime}`;
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        window.location.href = `/floor/1/${mealTime}`;
+                    });
+            });
+        });
+    });
+</script>
+{% endblock %} 
