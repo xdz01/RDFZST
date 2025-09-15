@@ -20,12 +20,12 @@ app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max upload
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
 
-# 流量监测配置
-app.config['TRAFFIC_MONITORING'] = True
+# 流量监测配置 - 已禁用
+app.config['TRAFFIC_MONITORING'] = False
 app.config['MAX_BANDWIDTH_PER_MINUTE'] = 50 * 1024 * 1024  # 每分钟最大带宽 (50MB)
 app.config['MAX_BANDWIDTH_PER_2_HOURS'] = 150 * 1024 * 1024  # 120分钟内最大带宽 (150MB)
 app.config['MAX_BANDWIDTH_PER_DAY'] = 300 * 1024 * 1024  # 一天内最大带宽 (300MB)
-app.config['AUTO_BLOCK_ENABLED'] = True
+app.config['AUTO_BLOCK_ENABLED'] = False
 
 # 时区配置
 app.config['TIMEZONE'] = 'Asia/Shanghai'  # 北京时间
@@ -1437,284 +1437,30 @@ def rankings():
                              title=title,
                              subtitle=subtitle)
 
-# 流量监测中间件
+# 流量监测中间件 - 已禁用
 @app.before_request
 def traffic_monitoring():
-    """流量监测中间件"""
-    if not app.config['TRAFFIC_MONITORING']:
-        return
-    
-    # 获取客户端IP
-    ip_address = request.remote_addr
-    if request.headers.get('X-Forwarded-For'):
-        ip_address = request.headers.get('X-Forwarded-For').split(',')[0].strip()
-    
-    # 检查IP是否被封锁
-    if db.is_ip_blocked(ip_address):
-        return jsonify({'error': 'IP已被封锁'}), 403
-    
-    # 记录请求开始时间
-    request.start_time = time.time()
+    """流量监测中间件 - 已禁用"""
+    # 功能已禁用
+    return
 
 @app.after_request
 def log_request(response):
-    """记录请求日志"""
-    if not app.config['TRAFFIC_MONITORING']:
-        return response
-    
-    # 获取客户端IP
-    ip_address = request.remote_addr
-    if request.headers.get('X-Forwarded-For'):
-        ip_address = request.headers.get('X-Forwarded-For').split(',')[0].strip()
-    
-    # 计算响应时间和流量
-    response_time = time.time() - getattr(request, 'start_time', time.time())
-    
-    # 安全地获取响应大小，避免direct passthrough mode错误
-    try:
-        bytes_sent = len(response.get_data())
-    except RuntimeError:
-        # 对于静态文件等direct passthrough响应，使用Content-Length头或默认为0
-        bytes_sent = response.content_length or 0
-    
-    # 获取用户信息
-    user_id = session.get('user_id')
-    username = session.get('username')
-    
-    # 记录访问日志
-    db.log_access(
-        ip_address=ip_address,
-        user_agent=request.headers.get('User-Agent'),
-        user_id=user_id,
-        username=username,
-        endpoint=request.endpoint,
-        method=request.method,
-        response_time=response_time,
-        bytes_sent=bytes_sent,
-        status_code=response.status_code
-    )
-    
-    # 自动防御检查 - 超级管理员不受审查
-    if app.config['AUTO_BLOCK_ENABLED'] and session.get('role') != 'superadmin':
-        check_and_block_suspicious_ip(ip_address)
-    
+    """记录请求日志 - 已禁用"""
+    # 功能已禁用
     return response
 
-def check_and_block_suspicious_ip(ip_address):
-    """检查并封锁可疑IP"""
-    try:
-        # 首先检查该IP是否已经被封锁，避免重复处理
-        if db.is_ip_blocked(ip_address):
-            return
-        
-        # 获取数据库连接
-        conn = db.get_db_connection()
-        cursor = conn.cursor()
-        
-        # 检查1分钟内的流量
-        cursor.execute('''
-            SELECT SUM(bytes_sent) as total_bytes
-            FROM access_logs 
-            WHERE ip_address = ? AND created_at >= datetime('now', '-1 minute')
-        ''', (ip_address,))
-        
-        minute_stats = cursor.fetchone()
-        if minute_stats:
-            minute_bytes = minute_stats['total_bytes'] or 0
-            
-            # 检查是否超过1分钟阈值（50MB）
-            if minute_bytes > app.config['MAX_BANDWIDTH_PER_MINUTE']:
-                reason = f"自动封锁: 1分钟内流量({minute_bytes}字节)超过50MB阈值"
-                block_type = "auto"
-                
-                if db.block_ip(ip_address, reason, block_type, 0, 'system'):
-                    print(f"自动永久封锁IP {ip_address}: {reason}")
-                    conn.close()
-                    return
-        
-        # 检查120分钟内的流量
-        cursor.execute('''
-            SELECT SUM(bytes_sent) as total_bytes
-            FROM access_logs 
-            WHERE ip_address = ? AND created_at >= datetime('now', '-120 minutes')
-        ''', (ip_address,))
-        
-        two_hour_stats = cursor.fetchone()
-        if two_hour_stats:
-            two_hour_bytes = two_hour_stats['total_bytes'] or 0
-            
-            # 检查是否超过120分钟阈值（150MB）
-            if two_hour_bytes > app.config['MAX_BANDWIDTH_PER_2_HOURS']:
-                reason = f"自动封锁: 120分钟内流量({two_hour_bytes}字节)超过150MB阈值"
-                block_type = "auto"
-                
-                if db.block_ip(ip_address, reason, block_type, 0, 'system'):
-                    print(f"自动永久封锁IP {ip_address}: {reason}")
-                    conn.close()
-                    return
-        
-        # 检查24小时内的流量
-        cursor.execute('''
-            SELECT SUM(bytes_sent) as total_bytes
-            FROM access_logs 
-            WHERE ip_address = ? AND created_at >= datetime('now', '-24 hours')
-        ''', (ip_address,))
-        
-        day_stats = cursor.fetchone()
-        if day_stats:
-            day_bytes = day_stats['total_bytes'] or 0
-            
-            # 检查是否超过24小时阈值（300MB）
-            if day_bytes > app.config['MAX_BANDWIDTH_PER_DAY']:
-                reason = f"自动封锁: 24小时内流量({day_bytes}字节)超过300MB阈值"
-                block_type = "auto"
-                
-                if db.block_ip(ip_address, reason, block_type, 0, 'system'):
-                    print(f"自动永久封锁IP {ip_address}: {reason}")
-        
-        conn.close()
-    except Exception as e:
-        print(f"检查可疑IP时出错: {e}")
-
-# 流量监测页面路由
+# 流量监测页面路由 - 已禁用
 @app.route('/admin/traffic')
 @login_required
 def admin_traffic():
-    """流量监测页面"""
+    """流量监测页面 - 已禁用"""
     if not is_superadmin():
         abort(403)
     
-    # 获取当前用户IP
-    current_ip = request.remote_addr
-    if request.headers.get('X-Forwarded-For'):
-        current_ip = request.headers.get('X-Forwarded-For').split(',')[0].strip()
-    
-    # 获取流量总览
-    summary = db.get_traffic_summary()
-    
-    # 获取流量统计
-    traffic_stats = db.get_traffic_stats(100)
-    
-    # 获取访问日志
-    access_logs = db.get_access_logs(100)
-    
-    # 获取IP封锁记录
-    ip_blocks = db.get_ip_blocks()
-    
-    return render_template('admin/traffic.html',
-                         summary=summary,
-                         traffic_stats=traffic_stats,
-                         access_logs=access_logs,
-                         ip_blocks=ip_blocks,
-                         current_ip=current_ip)
-
-@app.route('/admin/traffic/block_ip', methods=['POST'])
-@login_required
-def admin_block_ip():
-    """手动封锁IP"""
-    if not is_superadmin():
-        return jsonify({'error': '权限不足'}), 403
-    
-    data = request.get_json()
-    ip_address = data.get('ip_address')
-    reason = data.get('reason', '手动封锁')
-    duration_hours = data.get('duration_hours', 24)
-    
-    if not ip_address:
-        return jsonify({'error': 'IP地址不能为空'}), 400
-    
-    if db.block_ip(ip_address, reason, 'manual', duration_hours, session.get('username')):
-        return jsonify({'success': True, 'message': f'IP {ip_address} 已被封锁'})
-    else:
-        return jsonify({'error': '封锁IP失败'}), 500
-
-@app.route('/admin/traffic/cleanup_duplicates', methods=['POST'])
-@login_required
-def admin_cleanup_duplicate_blocks():
-    """清理重复的IP封锁记录"""
-    if not is_superadmin():
-        return jsonify({'error': '权限不足'}), 403
-    
-    try:
-        cleaned_count = db.cleanup_duplicate_ip_blocks()
-        return jsonify({'success': True, 'message': f'成功清理了 {cleaned_count} 条重复的IP封锁记录'})
-    except Exception as e:
-        return jsonify({'error': f'清理失败: {str(e)}'}), 500
-
-@app.route('/admin/traffic/unblock_ip', methods=['POST'])
-@login_required
-def admin_unblock_ip():
-    """解除IP封锁"""
-    if not is_superadmin():
-        return jsonify({'error': '权限不足'}), 403
-    
-    data = request.get_json()
-    ip_address = data.get('ip_address')
-    
-    if not ip_address:
-        return jsonify({'error': 'IP地址不能为空'}), 400
-    
-    if db.unblock_ip(ip_address):
-        return jsonify({'success': True, 'message': f'IP {ip_address} 已解除封锁'})
-    else:
-        return jsonify({'error': '解除封锁失败'}), 500
-
-@app.route('/admin/traffic/cleanup_blocks', methods=['POST'])
-@login_required
-def admin_cleanup_blocks():
-    """清理过期封锁记录"""
-    if not is_superadmin():
-        return jsonify({'error': '权限不足'}), 403
-    
-    try:
-        db.cleanup_expired_blocks()
-        return jsonify({'success': True, 'message': '过期封锁记录已清理'})
-    except Exception as e:
-        return jsonify({'error': f'清理失败: {str(e)}'}), 500
-
-@app.route('/admin/traffic/export_logs')
-@login_required
-def admin_export_logs():
-    """导出访问日志"""
-    if not is_superadmin():
-        abort(403)
-    
-    # 获取所有访问日志
-    logs = db.get_access_logs(10000)  # 获取更多记录
-    
-    # 生成CSV格式
-    import csv
-    from io import StringIO
-    
-    output = StringIO()
-    writer = csv.writer(output)
-    
-    # 写入表头
-    writer.writerow(['IP地址', '用户代理', '用户ID', '用户名', '端点', '方法', '响应时间', '字节数', '状态码', '时间'])
-    
-    # 写入数据
-    for log in logs:
-        writer.writerow([
-            log['ip_address'],
-            log['user_agent'] or '',
-            log['user_id'] or '',
-            log['username'] or '',
-            log['endpoint'] or '',
-            log['method'] or '',
-            log['response_time'] or '',
-            log['bytes_sent'] or '',
-            log['status_code'] or '',
-            log['created_at'] or ''
-        ])
-    
-    output.seek(0)
-    
-    from flask import Response
-    return Response(
-        output.getvalue(),
-        mimetype='text/csv',
-        headers={'Content-Disposition': 'attachment; filename=access_logs.csv'}
-    )
+    # 功能已禁用
+    flash('流量监控功能已被禁用', 'warning')
+    return redirect(url_for('admin_dashboard'))
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001, debug=True)
+    app.run(host='0.0.0.0', port=5001, debug=False)
