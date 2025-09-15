@@ -1462,5 +1462,9 @@ def admin_traffic():
     flash('流量监控功能已被禁用', 'warning')
     return redirect(url_for('admin_dashboard'))
 
+# 确保应用可以被 Gunicorn 找到
+application = app
+
 if __name__ == '__main__':
+    # 开发环境下使用 Flask 内置服务器
     app.run(host='0.0.0.0', port=5001, debug=False)
