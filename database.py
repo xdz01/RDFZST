@@ -3,12 +3,17 @@ import os
 import time
 from werkzeug.security import generate_password_hash, check_password_hash
 
+# 使用应用根目录（本文件所在目录）定位数据库，避免在服务器上因工作目录不同而找不到数据库
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+INSTANCE_DIR = os.path.join(BASE_DIR, 'instance')
+DB_PATH = os.path.join(INSTANCE_DIR, 'rdfz.db')
+
 # Create database folder if it doesn't exist
-if not os.path.exists('instance'):
-    os.makedirs('instance')
+if not os.path.exists(INSTANCE_DIR):
+    os.makedirs(INSTANCE_DIR)
 
 def get_db_connection():
-    conn = sqlite3.connect('instance/rdfz.db')
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -103,6 +108,11 @@ def init_db():
         created_at TIMESTAMP DEFAULT (datetime('now', '+8 hours'))
     )
     ''')
+
+    try:
+        conn.execute('ALTER TABLE users ADD COLUMN avatar TEXT')
+    except sqlite3.OperationalError:
+        pass
     
     # 创建反馈表
     conn.execute('''
@@ -172,9 +182,63 @@ def init_db():
     conn.execute('CREATE INDEX IF NOT EXISTS idx_access_logs_created_at ON access_logs(created_at)')
     conn.execute('CREATE INDEX IF NOT EXISTS idx_ip_blocks_ip ON ip_blocks(ip_address)')
     conn.execute('CREATE INDEX IF NOT EXISTS idx_traffic_stats_ip ON traffic_stats(ip_address)')
+
+    conn.execute('''
+    CREATE TABLE IF NOT EXISTS team_years (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        year INTEGER NOT NULL UNIQUE,
+        title TEXT DEFAULT '',
+        theme TEXT NOT NULL DEFAULT 'ink',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    ''')
+    conn.execute('''
+    CREATE TABLE IF NOT EXISTS team_members (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        year_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        role TEXT NOT NULL,
+        department TEXT DEFAULT '',
+        bio TEXT DEFAULT '',
+        avatar TEXT,
+        sort_order INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (year_id) REFERENCES team_years (id)
+    )
+    ''')
+    _seed_team_if_empty(conn)
     
     conn.commit()
     conn.close()
+
+def _seed_team_if_empty(conn):
+    existing = conn.execute('SELECT COUNT(*) AS count FROM team_years').fetchone()
+    if existing and existing['count']:
+        return
+    cursor = conn.cursor()
+    cursor.execute(
+        'INSERT INTO team_years (year, title, theme) VALUES (?, ?, ?)',
+        (2026, 'Aether', 'ink')
+    )
+    year_id = cursor.lastrowid
+    members = [
+        ('fyfy001', '设计开发', '人大附中编程社', ''),
+        ('Jhua老师', '指导老师', '人大附中编程社', ''),
+        ('段宗延', '开发', '人大附中人工智能社', ''),
+        ('陈逸戈', '程序员', '编程社 / 人工智能社', ''),
+        ('雷璐西', '管理运营', '饭否社', ''),
+        ('王佳源', '管理运营', '饭否社', ''),
+        ('顾雪隽', '管理运营', '饭否社', ''),
+        ('倪若木', '管理运营', '饭否社', ''),
+        ('蔡明翰', '管理运营', '饭否社', ''),
+        ('李焓', '管理运营', '饭否社', ''),
+    ]
+    for index, member in enumerate(members):
+        cursor.execute(
+            '''INSERT INTO team_members (year_id, name, role, department, bio, sort_order)
+               VALUES (?, ?, ?, ?, ?, ?)''',
+            (year_id, member[0], member[1], member[2], member[3], index)
+        )
 
 # User management functions
 def register_user(username, password, phone):
@@ -219,6 +283,19 @@ def get_user_by_id(user_id):
     if user:
         return dict(user)
     return None
+
+def set_user_avatar(user_id, filename):
+    conn = get_db_connection()
+    conn.execute('UPDATE users SET avatar = ? WHERE id = ?', (filename, user_id))
+    conn.commit()
+    conn.close()
+
+def update_user_password(user_id, new_password):
+    conn = get_db_connection()
+    hashed_password = generate_password_hash(new_password)
+    conn.execute('UPDATE users SET password = ? WHERE id = ?', (hashed_password, user_id))
+    conn.commit()
+    conn.close()
 
 # Floor and food management functions
 def get_all_floors():
@@ -303,7 +380,7 @@ def get_food_by_id(food_id):
         if food:
             # 获取食物评论
             cursor.execute('''
-                SELECT r.*, u.username, u.role
+                SELECT r.*, u.username, u.role, u.avatar
                 FROM reviews r
                 JOIN users u ON r.user_id = u.id
                 WHERE r.food_id = ?
@@ -1219,4 +1296,106 @@ def get_traffic_summary():
         print(f"获取流量总览时出错: {e}")
         return {}
     finally:
-        conn.close() 
+        conn.close()
+
+def get_team_years_with_members():
+    conn = get_db_connection()
+    years = [dict(row) for row in conn.execute('SELECT * FROM team_years ORDER BY year DESC')]
+    members = [dict(row) for row in conn.execute(
+        'SELECT * FROM team_members ORDER BY sort_order, id'
+    )]
+    conn.close()
+    grouped = {year['id']: [] for year in years}
+    for member in members:
+        if member['year_id'] in grouped:
+            grouped[member['year_id']].append(member)
+    for year in years:
+        year['members'] = grouped[year['id']]
+    return years
+
+def get_team_year(year_id):
+    conn = get_db_connection()
+    row = conn.execute('SELECT * FROM team_years WHERE id = ?', (year_id,)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def create_team_year(year, title, theme):
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            'INSERT INTO team_years (year, title, theme) VALUES (?, ?, ?)',
+            (year, title, theme)
+        )
+        conn.commit()
+        return cursor.lastrowid
+    finally:
+        conn.close()
+
+def update_team_year(year_id, year, title, theme):
+    conn = get_db_connection()
+    try:
+        conn.execute(
+            'UPDATE team_years SET year = ?, title = ?, theme = ? WHERE id = ?',
+            (year, title, theme, year_id)
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+def delete_team_year(year_id):
+    conn = get_db_connection()
+    avatars = [
+        row['avatar'] for row in conn.execute(
+            'SELECT avatar FROM team_members WHERE year_id = ? AND avatar IS NOT NULL',
+            (year_id,)
+        )
+    ]
+    conn.execute('DELETE FROM team_members WHERE year_id = ?', (year_id,))
+    conn.execute('DELETE FROM team_years WHERE id = ?', (year_id,))
+    conn.commit()
+    conn.close()
+    return avatars
+
+def get_team_member(member_id):
+    conn = get_db_connection()
+    row = conn.execute('SELECT * FROM team_members WHERE id = ?', (member_id,)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def create_team_member(year_id, name, role, department, bio, avatar):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    current = cursor.execute(
+        'SELECT COALESCE(MAX(sort_order), -1) AS max_order FROM team_members WHERE year_id = ?',
+        (year_id,)
+    ).fetchone()
+    sort_order = (current['max_order'] if current else -1) + 1
+    cursor.execute(
+        '''INSERT INTO team_members (year_id, name, role, department, bio, avatar, sort_order)
+           VALUES (?, ?, ?, ?, ?, ?, ?)''',
+        (year_id, name, role, department, bio, avatar, sort_order)
+    )
+    conn.commit()
+    member_id = cursor.lastrowid
+    conn.close()
+    return member_id
+
+def update_team_member(member_id, year_id, name, role, department, bio, avatar):
+    conn = get_db_connection()
+    conn.execute(
+        '''UPDATE team_members
+           SET year_id = ?, name = ?, role = ?, department = ?, bio = ?, avatar = ?
+           WHERE id = ?''',
+        (year_id, name, role, department, bio, avatar, member_id)
+    )
+    conn.commit()
+    conn.close()
+
+def delete_team_member(member_id):
+    conn = get_db_connection()
+    row = conn.execute('SELECT avatar FROM team_members WHERE id = ?', (member_id,)).fetchone()
+    conn.execute('DELETE FROM team_members WHERE id = ?', (member_id,))
+    conn.commit()
+    conn.close()
+    return row['avatar'] if row else None

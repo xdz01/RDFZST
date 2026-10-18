@@ -100,6 +100,14 @@
     .feedback-card .card-link {
         color: #e74c3c;
     }
+
+    .team-card .card-header {
+        background-color: #1f6f5b;
+    }
+
+    .team-card .card-link {
+        color: #1f6f5b;
+    }
     
     .traffic-card .card-header {
         background-color: #9c27b0;
@@ -158,6 +166,17 @@
                     查看和处理用户反馈信息
                 </div>
                 <a href="{{ url_for('admin_feedback') }}" class="card-link">进入管理</a>
+            </div>
+
+            <div class="admin-card team-card">
+                <div class="card-header">
+                    <div class="card-icon">🪪</div>
+                    <div class="card-title">开发团队管理</div>
+                </div>
+                <div class="card-content">
+                    按年份管理团队名牌，编辑头像、名字、职务和简介
+                </div>
+                <a href="{{ url_for('admin_team') }}" class="card-link">进入管理</a>
             </div>
             
             <!-- 流量监测功能已禁用 -->

@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 import os
 import secrets
 from werkzeug.utils import secure_filename
-from PIL import Image
+from PIL import Image, ImageOps
 import time
 import database as db
 import sqlite3
@@ -15,8 +15,11 @@ import base64
 import pytz
 
 app = Flask(__name__)
-app.secret_key = 'rdfzcafeteriareview'  # Secret key for session management
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
+app.secret_key = os.environ.get('SECRET_KEY', '')  # 部署前设置环境变量 SECRET_KEY
+
+# 统一使用「项目根目录 + 相对路径」的形式，确保本地开发和服务器部署都能正确保存到 static/uploads
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+app.config['UPLOAD_FOLDER'] = os.path.join(BASE_DIR, 'static', 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB max upload
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
 
@@ -124,23 +127,6 @@ def verify_captcha(user_input):
     
     return stored_captcha == user_captcha
 
-# 添加测试用户
-try:
-     #检查是否已有超级管理员账号
-    conn = db.get_db_connection()
-    super_admin = conn.execute('SELECT * FROM users WHERE username = ?', ('fyfy001',)).fetchone()
-    conn.close()
-    
-    if not super_admin:
-        db.register_user('fyfy001', 'qinazz0127', '13800138000')
-        conn = db.get_db_connection()
-        conn.execute('UPDATE users SET role = ? WHERE username = ?', ('superadmin', 'fyfy001'))
-        conn.commit()
-        conn.close()
-        print("已创建超级管理员账号: fyfy001 / qinazz0127")
-except Exception as e:
-    print(f"创建测试用户时出错: {e}")
-
 # 检查foods表是否有category字段，没有则添加
 try:
     conn = db.get_db_connection()
@@ -161,6 +147,25 @@ except Exception as e:
 # Ensure upload directory exists
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
+
+AVATAR_FOLDER = os.path.join(app.config['UPLOAD_FOLDER'], 'avatars')
+TEAM_FOLDER = os.path.join(app.config['UPLOAD_FOLDER'], 'team')
+AVATAR_MAX_BYTES = 5 * 1024 * 1024
+AVATAR_OUTPUT_SIZE = 512
+if not os.path.exists(AVATAR_FOLDER):
+    os.makedirs(AVATAR_FOLDER)
+if not os.path.exists(TEAM_FOLDER):
+    os.makedirs(TEAM_FOLDER)
+
+TEAM_THEMES = [
+    ('ink', '墨金'),
+    ('aurora', '极光'),
+    ('ocean', '深海'),
+    ('dusk', '暮色'),
+    ('forest', '松绿'),
+    ('night', '星夜'),
+]
+TEAM_THEME_IDS = {theme_id for theme_id, _name in TEAM_THEMES}
 
 # Helper functions
 def allowed_file(filename):
@@ -188,6 +193,50 @@ def save_image(file, resize=True):
         return new_filename
     return None
 
+def save_avatar_image(file_storage, folder=None):
+    """校验并保存头像，返回 (文件名, 错误信息)。"""
+    folder = folder or AVATAR_FOLDER
+    data = file_storage.read(AVATAR_MAX_BYTES + 1)
+    if not data:
+        return None, '请先选择图片'
+    if len(data) > AVATAR_MAX_BYTES:
+        return None, '图片不能超过 5MB'
+
+    try:
+        image = Image.open(BytesIO(data))
+        if image.format not in ('JPEG', 'PNG'):
+            return None, '只接受 JPG 和 PNG'
+        if image.width < 64 or image.height < 64 or image.width > 4096 or image.height > 4096:
+            return None, '图片边长需在 64 到 4096 像素之间'
+        image.load()
+    except Exception:
+        return None, '无法读取这张图片，请换一张 JPG 或 PNG'
+
+    if image.mode in ('RGBA', 'LA') or (image.mode == 'P' and 'transparency' in image.info):
+        rgba = image.convert('RGBA')
+        background = Image.new('RGB', rgba.size, (255, 255, 255))
+        background.paste(rgba, mask=rgba.split()[-1])
+        image = background
+    else:
+        image = image.convert('RGB')
+
+    image = ImageOps.fit(image, (AVATAR_OUTPUT_SIZE, AVATAR_OUTPUT_SIZE), Image.Resampling.LANCZOS)
+    filename = secrets.token_hex(16) + '.jpg'
+    image.save(os.path.join(folder, filename), format='JPEG', quality=88, optimize=True)
+    image.close()
+    return filename, None
+
+def remove_avatar_file(filename, folder=None):
+    if not filename or os.path.basename(filename) != filename:
+        return
+    path = os.path.join(folder or AVATAR_FOLDER, filename)
+    if not os.path.isfile(path):
+        return
+    try:
+        os.remove(path)
+    except OSError:
+        pass
+
 def is_admin():
     return session.get('role') in ['admin', 'superadmin']
 
@@ -209,9 +258,7 @@ def login_required(f):
     return decorated_function
 
 def get_db_connection():
-    conn = sqlite3.connect('instance/rdfz.db')
-    conn.row_factory = sqlite3.Row
-    return conn
+    return db.get_db_connection()
 
 def get_food_by_id(food_id):
     conn = get_db_connection()
@@ -361,7 +408,8 @@ def about_rdfz():
 
 @app.route('/about_team')
 def about_team():
-    return render_template('about_team.html')
+    years = db.get_team_years_with_members()
+    return render_template('about_team.html', years=years, theme_ids=TEAM_THEME_IDS)
 
 @app.route('/feedback', methods=['GET', 'POST'])
 def feedback():
@@ -456,10 +504,62 @@ def profile():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     
-    user_id = session.get('user_id')
-    user = db.get_user_by_id(user_id)
+    user = db.get_user_by_id(session.get('user_id'))
+    if not user:
+        session.clear()
+        flash('登录已失效，请重新登录', 'error')
+        return redirect(url_for('login'))
     
     return render_template('profile.html', user=user)
+
+@app.route('/profile/avatar', methods=['POST'])
+def update_avatar():
+    if not session.get('logged_in'):
+        return jsonify({'ok': False, 'message': '请先登录'}), 401
+
+    uploaded = request.files.get('avatar')
+    if not uploaded or not uploaded.filename:
+        return jsonify({'ok': False, 'message': '请先选择图片'}), 400
+
+    filename, error = save_avatar_image(uploaded)
+    if error:
+        return jsonify({'ok': False, 'message': error}), 400
+
+    user = db.get_user_by_id(session.get('user_id'))
+    old_avatar = user.get('avatar') if user else None
+    db.set_user_avatar(session.get('user_id'), filename)
+    if old_avatar and old_avatar != filename:
+        remove_avatar_file(old_avatar)
+
+    flash('头像已更新', 'success')
+    return jsonify({'ok': True})
+
+@app.route('/profile/password', methods=['POST'])
+def change_password():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+
+    current_password = request.form.get('current_password', '')
+    new_password = request.form.get('new_password', '')
+    confirm_password = request.form.get('confirm_password', '')
+    user = db.get_user_by_id(session.get('user_id'))
+
+    if not user or not db.check_password_hash(user['password'], current_password):
+        flash('当前密码不正确', 'error')
+        return redirect(url_for('profile', password=1))
+    if len(new_password) < 6:
+        flash('新密码至少需要 6 位', 'error')
+        return redirect(url_for('profile', password=1))
+    if new_password != confirm_password:
+        flash('两次输入的新密码不一致', 'error')
+        return redirect(url_for('profile', password=1))
+    if current_password == new_password:
+        flash('新密码不能与当前密码相同', 'error')
+        return redirect(url_for('profile', password=1))
+
+    db.update_user_password(user['id'], new_password)
+    flash('密码已更改', 'success')
+    return redirect(url_for('profile'))
 
 # Admin routes
 @app.route('/admin')
@@ -469,6 +569,160 @@ def admin_dashboard():
         return redirect(url_for('index'))
     
     return render_template('admin/dashboard.html')
+
+def _clean_team_text(value, limit):
+    return (value or '').strip()[:limit]
+
+def _team_year_form():
+    raw_year = (request.form.get('year') or '').strip()
+    title = _clean_team_text(request.form.get('title'), 40)
+    theme = request.form.get('theme') or 'ink'
+    if theme not in TEAM_THEME_IDS:
+        theme = 'ink'
+    if not raw_year.isdigit():
+        return None, None, None, '请填写有效年份'
+    year = int(raw_year)
+    if year < 2000 or year > 2100:
+        return None, None, None, '年份需在 2000 到 2100 之间'
+    return year, title, theme, None
+
+def _team_member_fields():
+    year_id = request.form.get('year_id')
+    name = _clean_team_text(request.form.get('name'), 40)
+    role = _clean_team_text(request.form.get('role'), 40)
+    department = _clean_team_text(request.form.get('department'), 40)
+    bio = _clean_team_text(request.form.get('bio'), 200)
+    if not str(year_id or '').isdigit() or not db.get_team_year(int(year_id)):
+        return None, '请选择年份'
+    if not name or not role:
+        return None, '请填写名字和职务'
+    return {
+        'year_id': int(year_id),
+        'name': name,
+        'role': role,
+        'department': department,
+        'bio': bio,
+    }, None
+
+@app.route('/admin/team')
+def admin_team():
+    if not is_admin():
+        flash('需要管理员权限', 'error')
+        return redirect(url_for('index'))
+    return render_template(
+        'admin/team_admin.html',
+        years=db.get_team_years_with_members(),
+        themes=TEAM_THEMES,
+    )
+
+@app.route('/admin/team/year', methods=['POST'])
+def admin_team_year_create():
+    if not is_admin():
+        flash('需要管理员权限', 'error')
+        return redirect(url_for('index'))
+    year, title, theme, error = _team_year_form()
+    if error:
+        flash(error, 'error')
+        return redirect(url_for('admin_team'))
+    try:
+        db.create_team_year(year, title, theme)
+        flash('年份已创建', 'success')
+    except sqlite3.IntegrityError:
+        flash('这个年份已经存在', 'error')
+    return redirect(url_for('admin_team'))
+
+@app.route('/admin/team/year/<int:year_id>/edit', methods=['POST'])
+def admin_team_year_edit(year_id):
+    if not is_admin():
+        flash('需要管理员权限', 'error')
+        return redirect(url_for('index'))
+    if not db.get_team_year(year_id):
+        flash('未找到该年份', 'error')
+        return redirect(url_for('admin_team'))
+    year, title, theme, error = _team_year_form()
+    if error:
+        flash(error, 'error')
+        return redirect(url_for('admin_team'))
+    try:
+        db.update_team_year(year_id, year, title, theme)
+        flash('年份已更新', 'success')
+    except sqlite3.IntegrityError:
+        flash('这个年份已经存在', 'error')
+    return redirect(url_for('admin_team'))
+
+@app.route('/admin/team/year/<int:year_id>/delete', methods=['POST'])
+def admin_team_year_delete(year_id):
+    if not is_admin():
+        flash('需要管理员权限', 'error')
+        return redirect(url_for('index'))
+    avatars = db.delete_team_year(year_id)
+    for filename in avatars:
+        remove_avatar_file(filename, TEAM_FOLDER)
+    flash('年份已删除', 'success')
+    return redirect(url_for('admin_team'))
+
+@app.route('/admin/team/member', methods=['POST'])
+def admin_team_member_create():
+    if not is_admin():
+        flash('需要管理员权限', 'error')
+        return redirect(url_for('index'))
+    fields, error = _team_member_fields()
+    if error:
+        flash(error, 'error')
+        return redirect(url_for('admin_team'))
+    avatar = None
+    uploaded = request.files.get('avatar')
+    if uploaded and uploaded.filename:
+        avatar, error = save_avatar_image(uploaded, TEAM_FOLDER)
+        if error:
+            flash(error, 'error')
+            return redirect(url_for('admin_team'))
+    db.create_team_member(
+        fields['year_id'], fields['name'], fields['role'],
+        fields['department'], fields['bio'], avatar
+    )
+    flash('名牌已添加', 'success')
+    return redirect(url_for('admin_team'))
+
+@app.route('/admin/team/member/<int:member_id>/edit', methods=['POST'])
+def admin_team_member_edit(member_id):
+    if not is_admin():
+        flash('需要管理员权限', 'error')
+        return redirect(url_for('index'))
+    member = db.get_team_member(member_id)
+    if not member:
+        flash('未找到该名牌', 'error')
+        return redirect(url_for('admin_team'))
+    fields, error = _team_member_fields()
+    if error:
+        flash(error, 'error')
+        return redirect(url_for('admin_team'))
+    avatar = member.get('avatar')
+    uploaded = request.files.get('avatar')
+    if uploaded and uploaded.filename:
+        new_avatar, error = save_avatar_image(uploaded, TEAM_FOLDER)
+        if error:
+            flash(error, 'error')
+            return redirect(url_for('admin_team'))
+        if avatar and avatar != new_avatar:
+            remove_avatar_file(avatar, TEAM_FOLDER)
+        avatar = new_avatar
+    db.update_team_member(
+        member_id, fields['year_id'], fields['name'], fields['role'],
+        fields['department'], fields['bio'], avatar
+    )
+    flash('名牌已更新', 'success')
+    return redirect(url_for('admin_team'))
+
+@app.route('/admin/team/member/<int:member_id>/delete', methods=['POST'])
+def admin_team_member_delete(member_id):
+    if not is_admin():
+        flash('需要管理员权限', 'error')
+        return redirect(url_for('index'))
+    avatar = db.delete_team_member(member_id)
+    remove_avatar_file(avatar, TEAM_FOLDER)
+    flash('名牌已删除', 'success')
+    return redirect(url_for('admin_team'))
 
 @app.route('/admin/foods', methods=['GET', 'POST'])
 def admin_foods():
@@ -615,8 +869,7 @@ def admin_set_cover(food_id, image_id):
     
     try:
         # 直接连接数据库，确保获取最新数据
-        conn = sqlite3.connect('instance/rdfz.db')
-        conn.row_factory = sqlite3.Row
+        conn = db.get_db_connection()
         cursor = conn.cursor()
         
         # 验证图片存在
@@ -703,8 +956,7 @@ def admin_delete_image(image_id):
     print(f"\n==== 删除图片 ID={image_id} ====")
     try:
         # 获取图片信息
-        conn = sqlite3.connect('instance/rdfz.db')
-        conn.row_factory = sqlite3.Row
+        conn = db.get_db_connection()
         cursor = conn.cursor()
         
         # 1. 获取图片信息
@@ -993,8 +1245,7 @@ def add_review(food_id):
     return redirect(url_for('food_detail', food_id=food_id))
 
 def check_cover_image_consistency():
-    conn = sqlite3.connect('instance/rdfz.db')
-    conn.row_factory = sqlite3.Row
+    conn = db.get_db_connection()
     cursor = conn.cursor()
     
     cursor.execute('SELECT id, cover_image FROM foods')
@@ -1024,10 +1275,7 @@ def check_cover_image_consistency():
     
 
 def fix_cover_image_inconsistencies():
-    
-    
-    conn = sqlite3.connect('instance/rdfz.db')
-    conn.row_factory = sqlite3.Row
+    conn = db.get_db_connection()
     cursor = conn.cursor()
     
     try:
@@ -1135,8 +1383,7 @@ def debug_check_cover_images():
         return redirect(url_for('index'))
     
     results = []
-    conn = sqlite3.connect('instance/rdfz.db')
-    conn.row_factory = sqlite3.Row
+    conn = db.get_db_connection()
     cursor = conn.cursor()
     
     # 获取所有食品
@@ -1388,7 +1635,7 @@ def rankings():
     else:  # users 用户排行
         # 按用户评论数排行
         query = '''
-            SELECT u.id, u.username, u.role, u.created_at,
+            SELECT u.id, u.username, u.role, u.created_at, u.avatar,
                    COUNT(r.id) as review_count,
                    AVG(r.rating) as avg_rating,
                    MIN(r.created_at) as first_review_date,

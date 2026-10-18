@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <rect width="200" height="200" fill="#f8f9fa"/>
+  <rect width="200" height="200" fill="none" stroke="#e9ecef" stroke-width="1"/>
+  <circle cx="100" cy="80" r="20" fill="#dee2e6"/>
+  <rect x="70" y="110" width="60" height="40" fill="#dee2e6" rx="5"/>
+  <text x="100" y="170" text-anchor="middle" fill="#6c757d" font-family="Arial, sans-serif" font-size="14">加载中...</text>
+</svg>

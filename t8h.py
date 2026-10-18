@@ -1,8 +1,9 @@
 import sqlite3
 from datetime import datetime, timedelta
+import database as db_module
 
 def adjust_time_forward_8_hours():
-    conn = sqlite3.connect('instance/rdfz.db')
+    conn = sqlite3.connect(db_module.DB_PATH)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     

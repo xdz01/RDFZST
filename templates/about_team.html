@@ -1,24 +1,558 @@
 {% extends "base.html" %}
 
-{% block title %}RDFZ食堂大众点评 - 关于开发团队{% endblock %}
+{% block title %}RDFZ食堂大众点评 - 开发团队{% endblock %}
+
+{% block styles %}
+<style>
+    .team-page {
+        background: #0c0d12;
+        color: #f7f3ea;
+    }
+
+    .team-hero {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        min-height: calc(100vh - 4.75rem);
+        min-height: calc(100dvh - 4.75rem);
+        padding: 2.5rem 1.5rem 3.5rem;
+        text-align: center;
+        overflow: hidden;
+        background: #0c0d12;
+    }
+
+    .team-kicker {
+        letter-spacing: 0.42em;
+        font-size: 0.75rem;
+        color: rgba(247, 243, 234, 0.62);
+        margin: 0 0 0.8rem;
+    }
+
+    .team-hero h1 {
+        margin: 0;
+        font-size: clamp(2.4rem, 6vw, 4.4rem);
+        font-weight: 600;
+        letter-spacing: 0.08em;
+    }
+
+    .team-hero p {
+        max-width: 36rem;
+        margin: 0.9rem auto 0;
+        color: rgba(247, 243, 234, 0.72);
+        line-height: 1.7;
+    }
+
+    .year-nav {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        margin-top: 2rem;
+    }
+
+    .year-nav a {
+        color: #f7f3ea;
+        text-decoration: none;
+        border: 1px solid rgba(247, 243, 234, 0.28);
+        border-radius: 999px;
+        padding: 0.45rem 1rem;
+        letter-spacing: 0.12em;
+        font-size: 0.92rem;
+    }
+
+    .year-nav a:hover {
+        background: rgba(255, 255, 255, 0.12);
+    }
+
+    .scroll-hint {
+        position: absolute;
+        left: 50%;
+        bottom: 1.6rem;
+        transform: translateX(-50%);
+        color: rgba(247, 243, 234, 0.55);
+        letter-spacing: 0.22em;
+        font-size: 0.75rem;
+    }
+
+    .glow,
+    .light-sweep {
+        position: absolute;
+        pointer-events: none;
+    }
+
+    .glow {
+        width: min(52vw, 640px);
+        height: min(52vw, 640px);
+        border-radius: 50%;
+        background: radial-gradient(circle, var(--glow, rgba(255, 214, 150, 0.85)) 0%, transparent 62%);
+        opacity: 0;
+        z-index: 0;
+        transform: scale(0.2);
+    }
+
+    .glow-a { top: -14%; left: -10%; --dx: -120px; --dy: -80px; }
+    .glow-b { right: -12%; bottom: -20%; width: min(42vw, 520px); height: min(42vw, 520px); --dx: 140px; --dy: 90px; }
+    .glow-c { left: 34%; top: 22%; width: min(30vw, 380px); height: min(30vw, 380px); --dx: 0px; --dy: 110px; }
+
+    .light-sweep {
+        inset: -30% -10%;
+        z-index: 1;
+        background: linear-gradient(105deg, transparent 36%, rgba(255, 255, 255, 0.28) 50%, transparent 64%);
+        opacity: 0;
+        transform: translateX(-80%);
+    }
+
+    .in-view .glow {
+        animation: glow-bloom 1.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .in-view .glow-b { animation-delay: 0.15s; }
+    .in-view .glow-c { animation-delay: 0.3s; }
+
+    .team-hero.opened .light-sweep {
+        animation: light-sweep 1.4s ease-out both;
+    }
+
+    @keyframes glow-bloom {
+        0% {
+            opacity: 0;
+            filter: blur(36px);
+            transform: translate3d(var(--dx, 0px), var(--dy, 40px), 0) scale(0.2);
+        }
+        45% {
+            opacity: 1;
+            filter: blur(4px);
+            transform: translate3d(0, 0, 0) scale(1.45);
+        }
+        100% {
+            opacity: 0.82;
+            filter: blur(14px);
+            transform: translate3d(0, 0, 0) scale(1);
+        }
+    }
+
+    @keyframes light-sweep {
+        0% { opacity: 0; transform: translateX(-75%); }
+        30% { opacity: 1; }
+        100% { opacity: 0; transform: translateX(75%); }
+    }
+
+    .year-scene {
+        position: relative;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: 5.5rem 1.25rem 4.5rem;
+        overflow: hidden;
+        scroll-margin-top: 0.5rem;
+    }
+
+    .year-scene::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        background-image: radial-gradient(rgba(255, 255, 255, 0.16) 0.6px, transparent 0.6px);
+        background-size: 18px 18px;
+        opacity: 0.18;
+        pointer-events: none;
+    }
+
+    .theme-ink {
+        --glow: rgba(214, 176, 96, 0.62);
+        --glow-alt: rgba(255, 228, 180, 0.38);
+        background: linear-gradient(165deg, #16141a 0%, #2a2114 48%, #0c0c10 100%);
+    }
+
+    .theme-aurora {
+        --glow: rgba(126, 92, 255, 0.7);
+        --glow-alt: rgba(46, 214, 190, 0.5);
+        background: linear-gradient(160deg, #090d22, #171338 52%, #07131a);
+    }
+
+    .theme-ocean {
+        --glow: rgba(120, 196, 255, 0.58);
+        --glow-alt: rgba(80, 230, 210, 0.36);
+        background: linear-gradient(170deg, #062033, #0c3d55 46%, #04141c);
+    }
+
+    .theme-dusk {
+        --glow: rgba(255, 154, 110, 0.58);
+        --glow-alt: rgba(255, 90, 140, 0.36);
+        background: linear-gradient(165deg, #2a1020, #5a2340 45%, #140910);
+    }
+
+    .theme-forest {
+        --glow: rgba(186, 214, 120, 0.5);
+        --glow-alt: rgba(90, 200, 150, 0.34);
+        background: linear-gradient(165deg, #102117, #1d3b2a 50%, #07110c);
+    }
+
+    .theme-night {
+        --glow: rgba(180, 200, 255, 0.5);
+        --glow-alt: rgba(255, 255, 255, 0.28);
+        background: linear-gradient(180deg, #070b18, #10182e 55%, #05070f);
+    }
+
+    .glow-b { --glow: var(--glow-alt, rgba(255, 228, 180, 0.38)); }
+
+    .year-inner,
+    .hero-inner {
+        position: relative;
+        z-index: 2;
+    }
+
+    .year-inner {
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+
+    .year-mark {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+        padding-bottom: 1rem;
+    }
+
+    .year-num {
+        font-size: clamp(4rem, 12vw, 7.5rem);
+        line-height: 0.85;
+        letter-spacing: -0.04em;
+        font-weight: 600;
+    }
+
+    .year-title {
+        margin-bottom: 0.4rem;
+        letter-spacing: 0.28em;
+        font-size: 0.95rem;
+        color: rgba(247, 243, 234, 0.78);
+    }
+
+    .badge-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1rem;
+    }
+
+    .name-badge {
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+        min-height: 112px;
+        padding: 0.85rem 1rem;
+        border-radius: 18px;
+        background: rgba(255, 252, 246, 0.94);
+        color: #1c1a17;
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+    }
+
+    .badge-photo {
+        width: 74px;
+        height: 74px;
+        border-radius: 50%;
+        overflow: hidden;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #1f2a36;
+        color: white;
+        font-size: 1.6rem;
+        font-weight: 600;
+    }
+
+    .badge-photo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .badge-role {
+        margin: 0;
+        font-size: 0.72rem;
+        letter-spacing: 0.18em;
+        color: #8d6a32;
+    }
+
+    .badge-body h3 {
+        margin: 0.15rem 0 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    .badge-dept {
+        margin-top: 0.15rem;
+        color: #5e675f;
+        font-size: 0.88rem;
+    }
+
+    .badge-body p {
+        margin: 0.35rem 0 0;
+        color: #3d403c;
+        font-size: 0.9rem;
+        line-height: 1.45;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .year-empty,
+    .team-empty {
+        text-align: center;
+        color: rgba(247, 243, 234, 0.75);
+        padding: 2rem 0 3rem;
+    }
+
+    .explore-wrap {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        margin-top: 3.6rem;
+        padding: 0.8rem 0 0.2rem;
+    }
+
+    .explore-wrap::before {
+        content: "";
+        position: absolute;
+        width: 230px;
+        height: 68px;
+        border-radius: 999px;
+        background: var(--glow, rgba(255, 220, 170, 0.72));
+        filter: blur(18px);
+        opacity: 0.4;
+        animation: explore-breathe 2.6s ease-in-out infinite;
+        pointer-events: none;
+    }
+
+    .year-scene.in-view .explore-wrap,
+    .team-empty + .explore-wrap {
+        animation: explore-in 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+    }
+
+    .explore-btn {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.95rem;
+        padding: 0.95rem 1.5rem 0.95rem 1.85rem;
+        border-radius: 999px;
+        color: #3a2e22;
+        text-decoration: none;
+        letter-spacing: 0.32em;
+        font-size: 0.92rem;
+        overflow: hidden;
+        background: linear-gradient(180deg, #fffaf3 0%, #f0d7a6 100%);
+        box-shadow: 0 16px 36px rgba(0, 0, 0, 0.22);
+        transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.45s ease, background 0.45s ease;
+    }
+
+    .explore-btn:hover {
+        transform: translateY(-4px);
+        background: linear-gradient(180deg, #fffdf8 0%, #f7e4bf 100%);
+        box-shadow: 0 0 28px rgba(240, 215, 166, 0.45), 0 18px 40px rgba(0, 0, 0, 0.28);
+    }
+
+    .explore-sheen {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(105deg, transparent 34%, rgba(255, 255, 255, 0.28) 50%, transparent 66%);
+        transform: translateX(-130%);
+        pointer-events: none;
+    }
+
+    .explore-btn:hover .explore-sheen {
+        animation: explore-sheen 0.85s ease;
+    }
+
+    .explore-label,
+    .explore-arrow {
+        position: relative;
+        z-index: 1;
+    }
+
+    .explore-arrow {
+        width: 1.35rem;
+        height: 1px;
+        background: currentColor;
+        transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .explore-arrow::before {
+        content: "";
+        position: absolute;
+        right: 0;
+        top: 50%;
+        width: 7px;
+        height: 7px;
+        border-top: 1px solid currentColor;
+        border-right: 1px solid currentColor;
+        transform: translateY(-50%) rotate(45deg);
+    }
+
+    .explore-btn:hover .explore-arrow {
+        transform: translateX(7px);
+    }
+
+    @keyframes explore-breathe {
+        0%, 100% { opacity: 0.28; transform: scale(0.94); }
+        50% { opacity: 0.72; transform: scale(1.08); }
+    }
+
+    @keyframes explore-sheen {
+        to { transform: translateX(130%); }
+    }
+
+    @keyframes explore-in {
+        from { opacity: 0; transform: translateY(22px); }
+        to { opacity: 1; transform: none; }
+    }
+
+    @media (max-width: 640px) {
+        .year-mark {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container" style="padding: 2rem; max-width: 800px; margin: 0 auto;">
-    <h1 style="text-align: center; margin-bottom: 2rem; color: #2c3e50;">关于开发团队</h1>
-    <div style="background-color: white; padding: 2rem; border-radius: 10px; box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1); text-align: center; line-height: 1.8;">
-        <p style="margin-bottom: 0.5rem; color: #2c3e50; font-size: 1.1rem;">
-            设计开发： 人大附中编程社<span style="margin: 0 0.5rem;">韧枝菌&Jhua老师</span>
-        </p>
-        <p style="margin-bottom: 1rem; color: #2c3e50; font-size: 1.1rem;">
-            人大附中人工智能社<span style="margin: 0 0.5rem;">段宗延</span>
-        </p>
-        <p style="margin-bottom: 1rem; color: #2c3e50; font-size: 1.1rem;">
-            两社优秀程序员<span style="margin: 0 0.5rem;">陈逸戈</span>
-        </p>
+<div class="team-page">
+    <header class="team-hero">
+        <span class="glow glow-a"></span>
+        <span class="glow glow-b"></span>
+        <span class="glow glow-c"></span>
+        <span class="light-sweep"></span>
+        <div class="hero-inner">
+            <p class="team-kicker">AETHER</p>
+            <h1>开发团队</h1>
+            <p>每一届同学的名字，都留在这一年的名牌上。</p>
+            {% if years %}
+                <nav class="year-nav">
+                    {% for year in years %}
+                        <a href="#year-{{ year.year }}">{{ year.year }}</a>
+                    {% endfor %}
+                </nav>
+            {% endif %}
+        </div>
+        {% if years %}
+            <div class="scroll-hint">向下翻页</div>
+        {% endif %}
+    </header>
 
-        <p style="margin-bottom: 0.5rem; color: #2c3e50; font-size: 1.1rem;">
-            管理运营：饭否社<span style="margin: 0 0.5rem;">潜伏在食堂的 雷璐西 王佳源 顾雪隽 倪若木 蔡明翰 李焓</span>
-        </p>
-    </div>
+    {% if years %}
+        {% for year in years %}
+            <section id="year-{{ year.year }}" class="year-scene theme-{{ year.theme if year.theme in theme_ids else 'ink' }}">
+                <span class="glow glow-a"></span>
+                <span class="glow glow-b"></span>
+                <span class="glow glow-c"></span>
+                <div class="year-inner">
+                    <div class="year-mark">
+                        <div class="year-num">{{ year.year }}</div>
+                        <div class="year-title">{{ year.title or '开发团队' }}</div>
+                    </div>
+                    {% if year.members %}
+                        <div class="badge-grid">
+                            {% for member in year.members %}
+                                <article class="name-badge">
+                                    <div class="badge-photo">
+                                        {% if member.avatar %}
+                                            <img src="{{ url_for('static', filename='uploads/team/' + member.avatar) }}" alt="">
+                                        {% else %}
+                                            {{ (member.name or '?')[:1] }}
+                                        {% endif %}
+                                    </div>
+                                    <div class="badge-body">
+                                        <p class="badge-role">{{ member.role }}</p>
+                                        <h3>{{ member.name }}</h3>
+                                        {% if member.department %}
+                                            <div class="badge-dept">{{ member.department }}</div>
+                                        {% endif %}
+                                        {% if member.bio %}
+                                            <p>{{ member.bio }}</p>
+                                        {% endif %}
+                                    </div>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="year-empty">这一年还没有名牌。</p>
+                    {% endif %}
+                    {% if loop.last %}
+                        <div class="explore-wrap">
+                            <a class="explore-btn" href="{{ url_for('index') }}">
+                                <span class="explore-sheen"></span>
+                                <span class="explore-label">探索网站</span>
+                                <span class="explore-arrow" aria-hidden="true"></span>
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </section>
+        {% endfor %}
+    {% else %}
+        <p class="team-empty">团队名牌还没有公布。</p>
+        <div class="explore-wrap">
+            <a class="explore-btn" href="{{ url_for('index') }}">
+                <span class="explore-sheen"></span>
+                <span class="explore-label">探索网站</span>
+                <span class="explore-arrow" aria-hidden="true"></span>
+            </a>
+        </div>
+    {% endif %}
 </div>
-{% endblock %} 
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const hero = document.querySelector('.team-hero');
+    const siteHeader = document.querySelector('body > header');
+
+    function fitHero() {
+        if (!hero || !siteHeader) return;
+        hero.style.minHeight = Math.max(window.innerHeight - siteHeader.offsetHeight, 420) + 'px';
+    }
+
+    fitHero();
+    window.addEventListener('resize', fitHero);
+
+    let heroOpened = false;
+
+    function play(scene) {
+        scene.classList.remove('in-view');
+        void scene.offsetWidth;
+        scene.classList.add('in-view');
+        if (scene === hero && !heroOpened) {
+            heroOpened = true;
+            scene.classList.add('opened');
+        }
+    }
+
+    const scenes = document.querySelectorAll('.team-hero, .year-scene');
+    if (!('IntersectionObserver' in window)) {
+        scenes.forEach(play);
+        return;
+    }
+
+    const observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+                if (!entry.target.classList.contains('in-view')) play(entry.target);
+            } else {
+                entry.target.classList.remove('in-view');
+            }
+        });
+    }, { threshold: 0.45 });
+
+    scenes.forEach(function (scene) { observer.observe(scene); });
+    if (hero) play(hero);
+})();
+</script>
+{% endblock %}

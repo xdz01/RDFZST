@@ -25,13 +25,38 @@
         height: 120px;
         border-radius: 50%;
         background-color: white;
-        margin: 0 auto 1.5rem auto;
+        margin: 0 auto 0.75rem auto;
         display: flex;
         justify-content: center;
         align-items: center;
         font-size: 3rem;
         color: #3498db;
         font-weight: bold;
+        overflow: hidden;
+        cursor: pointer;
+        border: 3px solid rgba(255, 255, 255, 0.85);
+    }
+
+    .profile-picture img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .avatar-edit-btn {
+        display: inline-block;
+        margin: 0 auto 1rem auto;
+        padding: 0.25rem 0.8rem;
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        border-radius: 999px;
+        background: transparent;
+        color: white;
+        cursor: pointer;
+        font-size: 0.85rem;
+    }
+
+    .avatar-edit-btn:hover {
+        background: rgba(255, 255, 255, 0.15);
     }
     
     .username {
@@ -143,6 +168,180 @@
     .danger-btn:hover {
         background-color: #c0392b;
     }
+
+    .password-panel {
+        display: none;
+        margin-top: 0.5rem;
+        padding: 1.25rem;
+        background: #f8f9fa;
+        border-radius: 10px;
+    }
+
+    .password-panel.open {
+        display: block;
+    }
+
+    .password-panel .form-group {
+        margin-bottom: 0.9rem;
+    }
+
+    .password-panel label {
+        display: block;
+        margin-bottom: 0.35rem;
+        color: #2c3e50;
+    }
+
+    .password-panel input {
+        width: 100%;
+        max-width: 360px;
+        padding: 0.65rem 0.75rem;
+        border: 1px solid #d5d8dc;
+        border-radius: 6px;
+        box-sizing: border-box;
+    }
+
+    .panel-submit {
+        border: none;
+        cursor: pointer;
+    }
+
+    .avatar-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+
+    .avatar-modal.open {
+        display: flex;
+    }
+
+    .avatar-dialog {
+        width: min(440px, 100%);
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem 1.25rem 1rem;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .avatar-file-input {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+    }
+
+    .avatar-inline-error {
+        display: none;
+        margin: 0 auto 0.75rem;
+        max-width: 280px;
+        color: #fff;
+        background: rgba(192, 57, 43, 0.95);
+        border-radius: 6px;
+        padding: 0.35rem 0.6rem;
+        font-size: 0.85rem;
+    }
+
+    .avatar-error {
+        display: none;
+        margin: 0 0 0.75rem;
+        color: #c0392b;
+        font-size: 0.9rem;
+    }
+
+    .avatar-stage {
+        display: none;
+        margin-top: 0.9rem;
+    }
+
+    .avatar-stage.open {
+        display: block;
+    }
+
+    .avatar-viewport {
+        width: min(320px, 100%);
+        aspect-ratio: 1;
+        margin: 0 auto;
+        position: relative;
+        overflow: hidden;
+        background: #1a1a1a;
+        touch-action: none;
+        cursor: grab;
+        border-radius: 8px;
+    }
+
+    .avatar-viewport:active {
+        cursor: grabbing;
+    }
+
+    .avatar-viewport img {
+        position: absolute;
+        user-select: none;
+        -webkit-user-drag: none;
+        pointer-events: none;
+    }
+
+    .avatar-ring {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 81.25%;
+        height: 81.25%;
+        transform: translate(-50%, -50%);
+        border: 2px solid #fff;
+        border-radius: 50%;
+        box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.5);
+        pointer-events: none;
+    }
+
+    .zoom-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-top: 0.85rem;
+        color: #2c3e50;
+    }
+
+    .zoom-row input {
+        flex: 1;
+    }
+
+    .avatar-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.6rem;
+        margin-top: 1rem;
+    }
+
+    .avatar-actions button {
+        border: none;
+        border-radius: 5px;
+        padding: 0.65rem 1rem;
+        cursor: pointer;
+    }
+
+    .avatar-actions .secondary {
+        background: #ecf0f1;
+        color: #2c3e50;
+    }
+
+    .avatar-actions .primary {
+        background: #3498db;
+        color: white;
+    }
+
+    .avatar-actions .primary:disabled {
+        background: #a9cce3;
+        cursor: not-allowed;
+    }
 </style>
 {% endblock %}
 
@@ -150,7 +349,15 @@
 <div class="container" style="padding: 2rem; max-width: 1200px; margin: 0 auto;">
     <div class="profile-container">
         <div class="profile-header">
-            <div class="profile-picture">{{ user.username[0].upper() }}</div>
+            <div class="profile-picture" id="open-avatar" title="设置头像">
+                {% if user.avatar %}
+                    <img src="{{ url_for('static', filename='uploads/avatars/' + user.avatar) }}" alt="头像">
+                {% else %}
+                    {{ (user.username or '?')[:1]|upper }}
+                {% endif %}
+            </div>
+            <button type="button" class="avatar-edit-btn" id="open-avatar-btn">设置头像</button>
+            <p class="avatar-inline-error" id="avatar-inline-error"></p>
             <div class="username">{{ user.username }}</div>
             <div class="role-badge {% if user.role == 'superadmin' %}superadmin{% elif user.role == 'admin' %}admin{% elif user.role == 'connoisseur' %}connoisseur{% else %}user{% endif %}">
                 {% if user.role == 'superadmin' %}
@@ -201,7 +408,22 @@
             <div class="profile-section">
                 <h2 class="section-title">操作</h2>
                 <a href="{{ url_for('my_reviews') }}" class="action-btn">我的评论</a>
-                <a href="{{ url_for('start') }}" class="action-btn">浏览菜品</a>
+                <button type="button" class="action-btn" id="toggle-password" style="border: none; cursor: pointer;">更改密码</button>
+                <form id="password-panel" class="password-panel {% if request.args.get('password') %}open{% endif %}" method="post" action="{{ url_for('change_password') }}">
+                    <div class="form-group">
+                        <label for="current_password">当前密码</label>
+                        <input type="password" id="current_password" name="current_password" required autocomplete="current-password">
+                    </div>
+                    <div class="form-group">
+                        <label for="new_password">新密码</label>
+                        <input type="password" id="new_password" name="new_password" required minlength="6" autocomplete="new-password">
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm_password">确认新密码</label>
+                        <input type="password" id="confirm_password" name="confirm_password" required minlength="6" autocomplete="new-password">
+                    </div>
+                    <button type="submit" class="action-btn panel-submit">保存密码</button>
+                </form>
                 {% if user.role in ['admin', 'superadmin'] %}
                     <a href="{{ url_for('admin_dashboard') }}" class="action-btn">管理中心</a>
                 {% endif %}
@@ -210,4 +432,258 @@
         </div>
     </div>
 </div>
+
+<input type="file" id="avatar-file" class="avatar-file-input" accept="image/jpeg,image/png,.jpg,.jpeg,.png">
+<div class="avatar-modal" id="avatar-modal">
+    <div class="avatar-dialog" role="dialog" aria-label="调整头像">
+        <p class="avatar-error" id="avatar-error"></p>
+        <div class="avatar-stage" id="avatar-stage">
+            <div class="avatar-viewport" id="avatar-viewport">
+                <img id="avatar-source" alt="">
+                <div class="avatar-ring"></div>
+            </div>
+            <div class="zoom-row">
+                <label for="avatar-zoom">缩放</label>
+                <input type="range" id="avatar-zoom" min="1" max="4" step="0.01" value="1">
+            </div>
+        </div>
+        <div class="avatar-actions">
+            <button type="button" class="secondary" id="avatar-cancel">取消</button>
+            <button type="button" class="primary" id="avatar-save" disabled>保存头像</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const modal = document.getElementById('avatar-modal');
+    const fileInput = document.getElementById('avatar-file');
+    const stage = document.getElementById('avatar-stage');
+    const viewport = document.getElementById('avatar-viewport');
+    const source = document.getElementById('avatar-source');
+    const zoom = document.getElementById('avatar-zoom');
+    const saveBtn = document.getElementById('avatar-save');
+    const errorEl = document.getElementById('avatar-error');
+    const inlineError = document.getElementById('avatar-inline-error');
+    const passwordPanel = document.getElementById('password-panel');
+    let objectUrl = '';
+    let naturalWidth = 0;
+    let naturalHeight = 0;
+    let coverScale = 1;
+    let scale = 1;
+    let offsetX = 0;
+    let offsetY = 0;
+    let dragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let originX = 0;
+    let originY = 0;
+
+    function showError(message) {
+        errorEl.textContent = message || '';
+        errorEl.style.display = message ? 'block' : 'none';
+    }
+
+    function showInlineError(message) {
+        inlineError.textContent = message || '';
+        inlineError.style.display = message ? 'block' : 'none';
+    }
+
+    function frame() {
+        const view = viewport.clientWidth || 320;
+        const diam = view * 0.8125;
+        return { view: view, diam: diam, left: (view - diam) / 2 };
+    }
+
+    function layout() {
+        source.style.width = (naturalWidth * scale) + 'px';
+        source.style.height = (naturalHeight * scale) + 'px';
+        source.style.left = offsetX + 'px';
+        source.style.top = offsetY + 'px';
+    }
+
+    function clamp() {
+        const box = frame();
+        const width = naturalWidth * scale;
+        const height = naturalHeight * scale;
+        const minX = box.left + box.diam - width;
+        const maxX = box.left;
+        const minY = box.left + box.diam - height;
+        const maxY = box.left;
+        offsetX = Math.min(maxX, Math.max(minX, offsetX));
+        offsetY = Math.min(maxY, Math.max(minY, offsetY));
+    }
+
+    function setScale(next) {
+        const box = frame();
+        const center = box.view / 2;
+        const imageX = (center - offsetX) / scale;
+        const imageY = (center - offsetY) / scale;
+        scale = next;
+        offsetX = center - imageX * scale;
+        offsetY = center - imageY * scale;
+        clamp();
+        layout();
+    }
+
+    function resetCropper() {
+        if (objectUrl) {
+            URL.revokeObjectURL(objectUrl);
+            objectUrl = '';
+        }
+        source.removeAttribute('src');
+        stage.classList.remove('open');
+        saveBtn.disabled = true;
+        fileInput.value = '';
+        showError('');
+    }
+
+    function pickFile() {
+        showInlineError('');
+        fileInput.value = '';
+        fileInput.click();
+    }
+
+    function closeModal() {
+        modal.classList.remove('open');
+        resetCropper();
+    }
+
+    document.getElementById('open-avatar').addEventListener('click', pickFile);
+    document.getElementById('open-avatar-btn').addEventListener('click', pickFile);
+    document.getElementById('avatar-cancel').addEventListener('click', closeModal);
+    modal.addEventListener('click', function (event) {
+        if (event.target === modal) closeModal();
+    });
+
+    document.getElementById('toggle-password').addEventListener('click', function () {
+        passwordPanel.classList.toggle('open');
+        if (passwordPanel.classList.contains('open')) {
+            document.getElementById('current_password').focus();
+        }
+    });
+
+    fileInput.addEventListener('change', function () {
+        const file = fileInput.files && fileInput.files[0];
+        showError('');
+        saveBtn.disabled = true;
+        if (!file) return;
+
+        const name = file.name.toLowerCase();
+        const typeOk = file.type === 'image/jpeg' || file.type === 'image/png' || /\.jpe?g$/.test(name) || name.endsWith('.png');
+        if (!typeOk) {
+            showInlineError('只接受 JPG 和 PNG');
+            fileInput.value = '';
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            showInlineError('图片不能超过 5MB');
+            fileInput.value = '';
+            return;
+        }
+
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        objectUrl = URL.createObjectURL(file);
+        source.onload = function () {
+            naturalWidth = source.naturalWidth;
+            naturalHeight = source.naturalHeight;
+            if (naturalWidth < 64 || naturalHeight < 64 || naturalWidth > 4096 || naturalHeight > 4096) {
+                showInlineError('图片边长需在 64 到 4096 像素之间');
+                stage.classList.remove('open');
+                modal.classList.remove('open');
+                saveBtn.disabled = true;
+                return;
+            }
+            showInlineError('');
+            modal.classList.add('open');
+            stage.classList.add('open');
+            const box = frame();
+            coverScale = Math.max(box.diam / naturalWidth, box.diam / naturalHeight);
+            scale = coverScale;
+            offsetX = (box.view - naturalWidth * scale) / 2;
+            offsetY = (box.view - naturalHeight * scale) / 2;
+            clamp();
+            layout();
+            zoom.value = '1';
+            saveBtn.disabled = false;
+        };
+        source.onerror = function () {
+            showInlineError('无法读取这张图片，请换一张 JPG 或 PNG');
+            modal.classList.remove('open');
+        };
+        source.src = objectUrl;
+    });
+
+    zoom.addEventListener('input', function () {
+        if (!naturalWidth) return;
+        setScale(coverScale * parseFloat(zoom.value));
+    });
+
+    viewport.addEventListener('pointerdown', function (event) {
+        if (!naturalWidth) return;
+        dragging = true;
+        dragStartX = event.clientX;
+        dragStartY = event.clientY;
+        originX = offsetX;
+        originY = offsetY;
+        viewport.setPointerCapture(event.pointerId);
+    });
+    viewport.addEventListener('pointermove', function (event) {
+        if (!dragging) return;
+        offsetX = originX + (event.clientX - dragStartX);
+        offsetY = originY + (event.clientY - dragStartY);
+        clamp();
+        layout();
+    });
+    function stopDrag() { dragging = false; }
+    viewport.addEventListener('pointerup', stopDrag);
+    viewport.addEventListener('pointercancel', stopDrag);
+
+    viewport.addEventListener('wheel', function (event) {
+        if (!naturalWidth) return;
+        event.preventDefault();
+        const current = parseFloat(zoom.value);
+        const next = Math.min(4, Math.max(1, current + (event.deltaY < 0 ? 0.08 : -0.08)));
+        zoom.value = String(next);
+        setScale(coverScale * next);
+    }, { passive: false });
+
+    saveBtn.addEventListener('click', function () {
+        if (!naturalWidth) return;
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        const box = frame();
+        const sx = (box.left - offsetX) / scale;
+        const sy = (box.left - offsetY) / scale;
+        const sw = box.diam / scale;
+        ctx.drawImage(source, sx, sy, sw, sw, 0, 0, 512, 512);
+        saveBtn.disabled = true;
+        canvas.toBlob(function (blob) {
+            if (!blob) {
+                showError('头像生成失败，请重试');
+                saveBtn.disabled = false;
+                return;
+            }
+            const body = new FormData();
+            body.append('avatar', blob, 'avatar.jpg');
+            fetch('{{ url_for("update_avatar") }}', { method: 'POST', body: body })
+                .then(function (response) { return response.json().then(function (data) { return { ok: response.ok, data: data }; }); })
+                .then(function (result) {
+                    if (!result.ok || !result.data.ok) {
+                        showError((result.data && result.data.message) || '头像保存失败');
+                        saveBtn.disabled = false;
+                        return;
+                    }
+                    window.location.href = '{{ url_for("profile") }}';
+                })
+                .catch(function () {
+                    showError('头像保存失败，请重试');
+                    saveBtn.disabled = false;
+                });
+        }, 'image/jpeg', 0.9);
+    });
+})();
+</script>
 {% endblock %} 

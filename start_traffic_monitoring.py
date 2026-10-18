@@ -9,12 +9,15 @@ import sys
 import sqlite3
 import time
 
+# 使用与主应用一致的数据库路径（基于脚本所在目录）
+import database as db_module
+db_path = db_module.DB_PATH
+
 def init_traffic_monitoring():
     """初始化流量监测系统"""
     print("正在初始化流量监测系统...")
     
     # 检查数据库文件
-    db_path = 'instance/rdfz.db'
     if not os.path.exists(db_path):
         print("错误: 数据库文件不存在，请先运行主应用初始化数据库")
         return False

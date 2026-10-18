@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+
+{% block title %}开发团队管理 - RDFZ食堂大众点评{% endblock %}
+
+{% block styles %}
+<style>
+    .team-admin {
+        max-width: 1080px;
+        margin: 0 auto;
+    }
+
+    .team-admin-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .team-admin-head h1 {
+        margin: 0 0 0.35rem;
+        color: #1f2a36;
+    }
+
+    .team-admin-head p {
+        margin: 0;
+        color: #66717c;
+    }
+
+    .panel {
+        background: white;
+        border-radius: 14px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+        padding: 1.25rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .panel h2 {
+        margin: 0 0 1rem;
+        font-size: 1.25rem;
+        color: #1f2a36;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 0.75rem;
+        align-items: end;
+    }
+
+    .field label {
+        display: block;
+        margin-bottom: 0.3rem;
+        color: #4d5862;
+        font-size: 0.88rem;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid #d5dbe1;
+        border-radius: 8px;
+        padding: 0.6rem 0.7rem;
+        font: inherit;
+    }
+
+    .field textarea {
+        min-height: 72px;
+        resize: vertical;
+    }
+
+    .wide {
+        grid-column: 1 / -1;
+    }
+
+    .btn {
+        border: none;
+        border-radius: 8px;
+        padding: 0.62rem 0.95rem;
+        cursor: pointer;
+        font: inherit;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-primary { background: #1f6f5b; color: white; }
+    .btn-muted { background: #e8edf1; color: #24303a; }
+    .btn-danger { background: #c0392b; color: white; }
+
+    .year-block {
+        border-top: 4px solid #1f6f5b;
+    }
+
+    .year-tools {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .member-row {
+        display: grid;
+        grid-template-columns: 52px 1fr auto;
+        gap: 0.8rem;
+        align-items: center;
+        padding: 0.8rem 0;
+        border-top: 1px solid #eef1f4;
+    }
+
+    .member-photo,
+    .member-photo img {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+    }
+
+    .member-photo {
+        background: #1f2a36;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        font-weight: 600;
+    }
+
+    .member-photo img { object-fit: cover; }
+
+    .member-row h3 {
+        margin: 0;
+        font-size: 1rem;
+    }
+
+    .member-row p {
+        margin: 0.15rem 0 0;
+        color: #66717c;
+        font-size: 0.9rem;
+    }
+
+    .member-actions {
+        display: flex;
+        gap: 0.4rem;
+    }
+
+    details {
+        margin-top: 0.75rem;
+    }
+
+    details summary {
+        cursor: pointer;
+        color: #1f6f5b;
+        margin-bottom: 0.7rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 2rem; max-width: 1200px; margin: 0 auto;">
+    <div class="team-admin">
+        <div class="team-admin-head">
+            <div>
+                <h1>开发团队管理</h1>
+                <p>按年份添加、修改和删除名牌。公开页面会按年份分成不同背景。</p>
+            </div>
+            <a class="btn btn-muted" href="{{ url_for('about_team') }}">查看团队页</a>
+        </div>
+
+        <section class="panel">
+            <h2>新建年份</h2>
+            <form method="post" action="{{ url_for('admin_team_year_create') }}" class="form-grid">
+                <div class="field">
+                    <label>年份</label>
+                    <input type="number" name="year" min="2000" max="2100" required placeholder="2026">
+                </div>
+                <div class="field">
+                    <label>标题</label>
+                    <input type="text" name="title" maxlength="40" placeholder="例如 Aether">
+                </div>
+                <div class="field">
+                    <label>背景</label>
+                    <select name="theme">
+                        {% for theme_id, theme_name in themes %}
+                            <option value="{{ theme_id }}">{{ theme_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button class="btn btn-primary" type="submit">创建年份</button>
+            </form>
+        </section>
+
+        {% for year in years %}
+            <section class="panel year-block" id="year-{{ year.id }}">
+                <div class="year-tools">
+                    <h2>{{ year.year }}{% if year.title %} · {{ year.title }}{% endif %}</h2>
+                    <form method="post" action="{{ url_for('admin_team_year_delete', year_id=year.id) }}" onsubmit="return confirm('删除这一年及其全部名牌？');">
+                        <button class="btn btn-danger" type="submit">删除年份</button>
+                    </form>
+                </div>
+
+                <form method="post" action="{{ url_for('admin_team_year_edit', year_id=year.id) }}" class="form-grid">
+                    <div class="field">
+                        <label>年份</label>
+                        <input type="number" name="year" min="2000" max="2100" value="{{ year.year }}" required>
+                    </div>
+                    <div class="field">
+                        <label>标题</label>
+                        <input type="text" name="title" maxlength="40" value="{{ year.title or '' }}">
+                    </div>
+                    <div class="field">
+                        <label>背景</label>
+                        <select name="theme">
+                            {% for theme_id, theme_name in themes %}
+                                <option value="{{ theme_id }}" {% if year.theme == theme_id %}selected{% endif %}>{{ theme_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button class="btn btn-muted" type="submit">保存年份</button>
+                </form>
+
+                {% for member in year.members %}
+                    <div class="member-row">
+                        <div class="member-photo">
+                            {% if member.avatar %}
+                                <img src="{{ url_for('static', filename='uploads/team/' + member.avatar) }}" alt="">
+                            {% else %}
+                                {{ (member.name or '?')[:1] }}
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h3>{{ member.name }}</h3>
+                            <p>{{ member.role }}{% if member.department %} · {{ member.department }}{% endif %}</p>
+                            {% if member.bio %}<p>{{ member.bio }}</p>{% endif %}
+                        </div>
+                        <div class="member-actions">
+                            <form method="post" action="{{ url_for('admin_team_member_delete', member_id=member.id) }}" onsubmit="return confirm('删除这张名牌？');">
+                                <button class="btn btn-danger" type="submit">删除</button>
+                            </form>
+                        </div>
+                    </div>
+                    <details>
+                        <summary>修改 {{ member.name }}</summary>
+                        <form method="post" action="{{ url_for('admin_team_member_edit', member_id=member.id) }}" enctype="multipart/form-data" class="form-grid">
+                            <input type="hidden" name="year_id" value="{{ year.id }}">
+                            <div class="field">
+                                <label>名字</label>
+                                <input type="text" name="name" maxlength="40" value="{{ member.name }}" required>
+                            </div>
+                            <div class="field">
+                                <label>职务</label>
+                                <input type="text" name="role" maxlength="40" value="{{ member.role }}" required>
+                            </div>
+                            <div class="field">
+                                <label>社团或组别</label>
+                                <input type="text" name="department" maxlength="40" value="{{ member.department or '' }}">
+                            </div>
+                            <div class="field">
+                                <label>更换头像</label>
+                                <input type="file" name="avatar" accept="image/jpeg,image/png,.jpg,.jpeg,.png">
+                            </div>
+                            <div class="field wide">
+                                <label>简介</label>
+                                <textarea name="bio" maxlength="200">{{ member.bio or '' }}</textarea>
+                            </div>
+                            <button class="btn btn-primary" type="submit">保存名牌</button>
+                        </form>
+                    </details>
+                {% endfor %}
+
+                <details>
+                    <summary>添加名牌</summary>
+                    <form method="post" action="{{ url_for('admin_team_member_create') }}" enctype="multipart/form-data" class="form-grid">
+                        <input type="hidden" name="year_id" value="{{ year.id }}">
+                        <div class="field">
+                            <label>名字</label>
+                            <input type="text" name="name" maxlength="40" required>
+                        </div>
+                        <div class="field">
+                            <label>职务</label>
+                            <input type="text" name="role" maxlength="40" required placeholder="设计开发、管理运营">
+                        </div>
+                        <div class="field">
+                            <label>社团或组别</label>
+                            <input type="text" name="department" maxlength="40" placeholder="编程社、饭否社">
+                        </div>
+                        <div class="field">
+                            <label>头像</label>
+                            <input type="file" name="avatar" accept="image/jpeg,image/png,.jpg,.jpeg,.png">
+                        </div>
+                        <div class="field wide">
+                            <label>简介</label>
+                            <textarea name="bio" maxlength="200" placeholder="一两句话即可"></textarea>
+                        </div>
+                        <button class="btn btn-primary" type="submit">添加名牌</button>
+                    </form>
+                </details>
+            </section>
+        {% endfor %}
+
+        <p style="text-align: center;"><a class="btn btn-muted" href="{{ url_for('admin_dashboard') }}">返回管理面板</a></p>
+    </div>
+</div>
+{% endblock %}

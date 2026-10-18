@@ -184,22 +184,11 @@
         background-color: #f5f5f5;
         cursor: not-allowed;
     }
+
+    .form-actions {
+        margin-top: 10px;
+    }
 </style>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // 获取表单元素
-        var form = document.getElementById('edit-food-form');
-        
-        // 在表单提交时执行
-        form.addEventListener('submit', function(event) {
-            // 防止表单默认提交
-            event.preventDefault();
-            
-            // 手动提交表单
-            this.submit();
-        });
-    });
-</script>
 {% endblock %}
 
 {% block content %}
@@ -209,8 +198,7 @@
         <p>修改菜品的信息和图片</p>
     </div>
     
-    <!-- 添加明确的表单action属性 -->
-    <form method="post" action="{{ url_for('admin_edit_food', food_id=food.id) }}" enctype="multipart/form-data">
+    <form id="edit-food-form" method="post" action="{{ url_for('admin_edit_food', food_id=food.id) }}" enctype="multipart/form-data">
         <!-- 添加CSRF令牌（如果您的应用使用了Flask-WTF）-->
         {{ form.csrf_token if form }}
         
@@ -279,7 +267,8 @@
                 <input type="file" id="cover_image" name="cover_image" class="form-control" accept="image/*">
             </div>
         </div>
-        
+    </form>
+
         {% if session.role in ['admin', 'superadmin'] %}
         <div class="form-section">
             <h2>其他图片</h2>
@@ -310,9 +299,8 @@
         </div>
         {% endif %}
         
-        <div class="form-section">
-            <button type="submit" class="btn-primary">保存修改</button>
+        <div class="form-section form-actions">
+            <button type="submit" form="edit-food-form" class="btn-primary">保存修改</button>
         </div>
-    </form>
 </div>
 {% endblock %}
